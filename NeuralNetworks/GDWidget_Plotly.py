@@ -145,7 +145,7 @@ class GradientDescentVisualizer:
         self.eta_slider.observe(self._update_plot, names='value')
         self.reset_button.on_click(self._reset)
 
-    def viz(self):
+    def show(self):
         controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
         display(controls)
         display(self.fig)
