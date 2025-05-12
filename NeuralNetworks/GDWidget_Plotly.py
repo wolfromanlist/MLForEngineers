@@ -16,7 +16,7 @@ class GradientDescentVisualizer:
         self.init_w, self.init_b, self.init_eta = 1.0, 1.0, 0.0015
         self.w_range, self.b_range, self.eta_range = w_range, b_range, eta_range
 
-        # Precompute meshgrid and MSE surface (independent of sliders!)
+        # Precompute meshgrid and MSE surface
         w_vals = np.linspace(*w_range, 100)
         b_vals = np.linspace(*b_range, 100)
         self.W, self.B = np.meshgrid(w_vals, b_vals, indexing='ij')
@@ -25,7 +25,7 @@ class GradientDescentVisualizer:
         self._setup_widgets()
         self._setup_figure()
         self._link_callbacks()
-        self._display()
+        self.show()
 
     def y_hat(self, w, b):
         x = self.x
@@ -41,7 +41,7 @@ class GradientDescentVisualizer:
     def compute_descent_path(self, w0, b0, eta):
         w, b = w0, b0
         history = [(w, b)]
-        errors = [self.mse(self.y, self.y_hat(w, b))]  # Include initial error
+        errors = [self.mse(self.y, self.y_hat(w, b))]
 
         for _ in range(self.steps):
             y_pred = self.y_hat(w, b)
@@ -56,33 +56,21 @@ class GradientDescentVisualizer:
     def _setup_widgets(self):
         self.w_slider = widgets.FloatSlider(value=self.init_w, min=self.w_range[0], max=self.w_range[1], step=0.1, description='w₀:')
         self.b_slider = widgets.FloatSlider(value=self.init_b, min=self.b_range[0], max=self.b_range[1], step=0.1, description='b₀:')
-        self.eta_slider = widgets.FloatSlider(value=self.init_eta, min=self.eta_range[0], max=self.eta_range[1], step=0.0001, description='η:')
+        self.eta_slider = widgets.FloatSlider(value=self.init_eta, min=self.eta_range[0], max=self.eta_range[1], step=0.0001, readout_format='.4f',description='η:')
         self.reset_button = widgets.Button(description="Reset")
 
     def _setup_figure(self):
         self.fig = go.FigureWidget(make_subplots(rows=1, cols=2, subplot_titles=("Loss over Time", "Parameter Space")))
+        self.fig.update_layout(
+            xaxis=dict(range=[-0.2, self.steps + .2], fixedrange=True),
+            yaxis=dict(range=[0, 175], fixedrange=True),
+            xaxis2=dict(range=[self.w_range[0], self.w_range[1]], fixedrange=True),
+            yaxis2=dict(range=[self.b_range[0], self.b_range[1]], fixedrange=True),
+        )
 
-        # Initial path
         self.history, self.errors = self.compute_descent_path(self.init_w, self.init_b, self.init_eta)
         ws, bs = zip(*self.history)
 
-        # Descent path arrows
-        self.arrow_trace = go.Scatter(
-            x=ws, y=bs, mode='lines+markers',
-            line=dict(color='red'),
-            marker=dict(size=10, symbol='arrow-bar-up', color='red'),
-            name='Descent Path'
-        )
-
-        # Loss trace
-        self.loss_trace = go.Scatter(
-            x=list(range(len(self.errors))),
-            y=self.errors,
-            mode='lines+markers',
-            name='Loss'
-        )
-
-        # Contour (fixed)
         contour = go.Contour(
             x=np.linspace(*self.w_range, 100),
             y=np.linspace(*self.b_range, 100),
@@ -92,16 +80,42 @@ class GradientDescentVisualizer:
             colorbar=dict(title='Loss')
         )
 
+        self.loss_trace = go.Scatter(
+            x=list(range(len(self.errors))),
+            y=self.errors,
+            mode='lines+markers',
+            name='Loss'
+        )
+
+        arrow_trace = go.Scatter(
+            x=ws,
+            y=bs,
+            mode='lines+markers',
+            marker=dict(
+                symbol=['circle'] + ['triangle-up'] * (len(ws) - 1),
+                size=[0] + [12] * (len(ws) - 1),
+                color='red',
+                angle=[0] * len(ws),
+                angleref='previous'
+            ),
+            line=dict(color='red'),
+            name='Descent Path',
+            showlegend=True
+        )
+
         self.fig.add_trace(self.loss_trace, row=1, col=1)
         self.fig.update_xaxes(title_text="Step", row=1, col=1)
         self.fig.update_yaxes(title_text="Loss", row=1, col=1)
 
         self.fig.add_trace(contour, row=1, col=2)
-        self.fig.add_trace(self.arrow_trace, row=1, col=2)
         self.fig.update_xaxes(title_text="w", row=1, col=2)
         self.fig.update_yaxes(title_text="b", row=1, col=2)
 
+        self.arrow_trace_index = len(self.fig.data)
+        self.fig.add_trace(arrow_trace, row=1, col=2)
+
         self.fig.update_layout(height=600, width=1000, showlegend=False)
+
 
     def _update_plot(self, *_):
         w0, b0, eta = self.w_slider.value, self.b_slider.value, self.eta_slider.value
@@ -109,13 +123,16 @@ class GradientDescentVisualizer:
         ws, bs = zip(*self.history)
 
         with self.fig.batch_update():
-            # Update loss trace (left subplot)
+            # Update loss trace (index 0)
             self.fig.data[0].x = list(range(len(self.errors)))
             self.fig.data[0].y = self.errors
 
-            # Update descent path trace (right subplot)
-            self.fig.data[2].x = ws
-            self.fig.data[2].y = bs
+            trace = self.fig.data[self.arrow_trace_index]
+            trace.x = ws
+            trace.y = bs
+            trace.marker.angle = [0] * len(ws)
+            trace.marker.angleref = 'previous'
+
 
     def _reset(self, *_):
         self.w_slider.value = self.init_w
@@ -128,7 +145,7 @@ class GradientDescentVisualizer:
         self.eta_slider.observe(self._update_plot, names='value')
         self.reset_button.on_click(self._reset)
 
-    def _display(self):
+    def show(self):
         controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
         display(controls)
         display(self.fig)
