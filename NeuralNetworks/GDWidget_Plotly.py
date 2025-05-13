@@ -25,7 +25,7 @@ class GradientDescentVisualizer:
         self._setup_widgets()
         self._setup_figure()
         self._link_callbacks()
-        self.show()
+        #self.show()
 
     def y_hat(self, w, b):
         x = self.x
@@ -117,7 +117,8 @@ class GradientDescentVisualizer:
         self.fig.update_layout(height=600, width=1000, showlegend=False)
 
 
-    def _update_plot(self, *_):
+    """
+     def _update_plot(self, *_):
         w0, b0, eta = self.w_slider.value, self.b_slider.value, self.eta_slider.value
         self.history, self.errors = self.compute_descent_path(w0, b0, eta)
         ws, bs = zip(*self.history)
@@ -132,6 +133,22 @@ class GradientDescentVisualizer:
             trace.y = bs
             trace.marker.angle = [0] * len(ws)
             trace.marker.angleref = 'previous'
+    """
+
+    def _update_plot(self, w0, b0, eta):
+        self.history, self.errors = self.compute_descent_path(w0, b0, eta)
+        ws, bs = zip(*self.history)
+
+        with self.fig.batch_update():
+            self.fig.data[0].x = list(range(len(self.errors)))
+            self.fig.data[0].y = self.errors
+
+            trace = self.fig.data[self.arrow_trace_index]
+            trace.x = ws
+            trace.y = bs
+            trace.marker.angle = [0] * len(ws)
+            trace.marker.angleref = 'previous'
+
 
 
     def _reset(self, *_):
@@ -140,12 +157,34 @@ class GradientDescentVisualizer:
         self.eta_slider.value = self.init_eta
 
     def _link_callbacks(self):
-        self.w_slider.observe(self._update_plot, names='value')
-        self.b_slider.observe(self._update_plot, names='value')
-        self.eta_slider.observe(self._update_plot, names='value')
+        #self.w_slider.observe(self._update_plot, names='value')
+        #self.b_slider.observe(self._update_plot, names='value')
+        #self.eta_slider.observe(self._update_plot, names='value')
         self.reset_button.on_click(self._reset)
-
+    
+    """ 
     def show(self):
         controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
         display(controls)
-        display(self.fig)
+        display(self.fig) 
+    """
+
+    def show(self):
+        controls = widgets.VBox([
+            self.w_slider,
+            self.b_slider,
+            self.eta_slider,
+            self.reset_button
+        ])
+
+        out = widgets.interactive_output(
+            self._update_plot,
+            {
+                'w0': self.w_slider,
+                'b0': self.b_slider,
+                'eta': self.eta_slider
+            }
+        )
+
+        display(controls, self.fig, out)
+
