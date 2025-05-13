@@ -60,28 +60,69 @@ class GradientDescentVisualizer:
         self.reset_button = widgets.Button(description="Reset")
 
     def _setup_figure(self):
-
-        # In deiner GradientDescentVisualizer Klasse:
-        # TEST 1: Fast leere FigureWidget
         self.history, self.errors = self.compute_descent_path(self.init_w, self.init_b, self.init_eta)
-
+        
         print(f"Länge der Errors: {len(self.errors)}")
         print(f"Errors: {self.errors}")
-        print(f"X-Werte für Loss: {list(range(len(self.errors)))}")
+        
+        # Daten für den Loss-Plot
+        x_loss_data = list(range(len(self.errors)))
+        y_loss_data = [float(e) for e in self.errors] # Explizit zu Python float konvertieren
+
+        print(f"X-Werte für Loss: {x_loss_data}")
+        print(f"Y-Werte für Loss (als float): {y_loss_data}")
 
         self.fig = go.FigureWidget(make_subplots(rows=1, cols=2, subplot_titles=("Loss", "Params")))
+        
         self.loss_trace = go.Scatter(
-            x=list(range(len(self.errors))),
-            y=self.errors,
+            x=x_loss_data,
+            y=y_loss_data,
             mode='lines+markers',
             name='Loss'
         )
-        dummy_trace_params = go.Scatter(x=[0,1], y=[0,1], name="Dummy Params")
-
         self.fig.add_trace(self.loss_trace, row=1, col=1)
-        self.fig.add_trace(dummy_trace_params, row=1, col=2) # HIER
-        self.fig.update_layout(title_text="Test innerhalb der Klasse")
+
+        # --- EXPLIZITE ACHSEN FÜR LINKEN SUBPLOT ---
+        if x_loss_data and y_loss_data: # Nur wenn Daten vorhanden sind
+            self.fig.update_xaxes(
+                title_text="Step",
+                range=[min(x_loss_data) - 0.5, max(x_loss_data) + 0.5], 
+                row=1, col=1
+            )
+            self.fig.update_yaxes(
+                title_text="Loss Value",
+                range=[min(y_loss_data) * 0.9, max(y_loss_data) * 1.1], # 10% Puffer
+                row=1, col=1
+            )
+        else: # Fallback, falls keine Daten
+             self.fig.update_xaxes(title_text="Step", range=[-1, 6], row=1, col=1)
+             self.fig.update_yaxes(title_text="Loss Value", range=[-1, 10], row=1, col=1)
+
+
+        # --- EXPLIZITE ACHSEN FÜR RECHTEN SUBPLOT (auch wenn er erstmal leer ist oder Dummy-Daten bekommt) ---
+        # Dies hilft, den Platz für den rechten Subplot zu definieren.
+        # Passe die 'range'-Werte an deine erwarteten w- und b-Werte an (aus self.w_range, self.b_range)
+        self.fig.update_xaxes(
+            title_text="w (Parameter)", 
+            range=[self.w_range[0] - 0.1, self.w_range[1] + 0.1], # Beispiel basierend auf self.w_range
+            row=1, col=2
+        )
+        self.fig.update_yaxes(
+            title_text="b (Parameter)", 
+            range=[self.b_range[0] - 0.1, self.b_range[1] + 0.1], # Beispiel basierend auf self.b_range
+            row=1, col=2
+        )
         
+        # Testweise einen Dummy-Trace zum rechten Plot hinzufügen, um zu sehen, ob er dann gezeichnet wird
+        dummy_trace_params = go.Scatter(x=[np.mean(self.w_range)], y=[np.mean(self.b_range)], mode="markers", name="Dummy Params")
+        self.fig.add_trace(dummy_trace_params, row=1, col=2)
+
+
+        self.fig.update_layout(
+            title_text="Gradient Descent Visualizer (Test mit expliziten Achsen)",
+            height=500, # Höhe der gesamten Figur in Pixeln
+            width=1000  # Breite der gesamten Figur in Pixeln
+        )
         """ self.fig = go.FigureWidget(make_subplots(rows=1, cols=2, subplot_titles=("Loss over Time", "Parameter Space")))
         self.fig.update_layout(
             xaxis=dict(range=[-0.2, self.steps + .2], fixedrange=True),
