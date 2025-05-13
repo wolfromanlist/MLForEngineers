@@ -136,11 +136,11 @@ class GradientDescentVisualizer:
     """
 
     def _update_plot(self, w0, b0, eta):
-        print('update_plot aufgerufen')
         self.history, self.errors = self.compute_descent_path(w0, b0, eta)
         ws, bs = zip(*self.history)
 
         with self.fig.batch_update():
+            print('update figure')
             self.fig.data[0].x = list(range(len(self.errors)))
             self.fig.data[0].y = self.errors
 
