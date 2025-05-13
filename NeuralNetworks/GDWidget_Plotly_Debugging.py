@@ -63,6 +63,7 @@ class GradientDescentVisualizer:
 
         # In deiner GradientDescentVisualizer Klasse:
         # TEST 1: Fast leere FigureWidget
+        self.history, self.errors = self.compute_descent_path(self.init_w, self.init_b, self.init_eta)
         self.fig = go.FigureWidget(make_subplots(rows=1, cols=2, subplot_titles=("Loss", "Params")))
         self.loss_trace = go.Scatter(
             x=list(range(len(self.errors))),
