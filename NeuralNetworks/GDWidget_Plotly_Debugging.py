@@ -63,9 +63,9 @@ class GradientDescentVisualizer:
 
         # In deiner GradientDescentVisualizer Klasse:
         # TEST 1: Fast leere FigureWidget
-        self.fig = go.FigureWidget()
-        # Füge einen einzigen, extrem simplen Trace hinzu, wie im Minimalbeispiel
-        self.fig.add_scatter(y=[2, 1, 3], x=[1, 2, 3])
+        self.fig = go.FigureWidget(make_subplots(rows=1, cols=2, subplot_titles=("Loss", "Params")))
+        self.fig.add_scatter(y=[2,1,3], x=[1,2,3], row=1, col=1) # Einfacher Trace im Subplot
+        # ... Rest auskommentiert ...
         self.fig.update_layout(title_text="Test innerhalb der Klasse")
         
         """ self.fig = go.FigureWidget(make_subplots(rows=1, cols=2, subplot_titles=("Loss over Time", "Parameter Space")))
