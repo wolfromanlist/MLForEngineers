@@ -151,7 +151,6 @@ class GradientDescentVisualizer:
             trace.marker.angleref = 'previous'
 
 
-
     def _reset(self, *_):
         self.w_slider.value = self.init_w
         self.b_slider.value = self.init_b
@@ -185,7 +184,7 @@ class GradientDescentVisualizer:
         )
 
         #display(controls, self.fig, out)
-        #display(controls)
+        display(controls)
         display(self.fig)
         display(out)
 
