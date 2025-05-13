@@ -136,6 +136,7 @@ class GradientDescentVisualizer:
     """
 
     def _update_plot(self, w0, b0, eta):
+        print('update_plot aufgerufen')
         self.history, self.errors = self.compute_descent_path(w0, b0, eta)
         ws, bs = zip(*self.history)
 
@@ -157,9 +158,6 @@ class GradientDescentVisualizer:
         self.eta_slider.value = self.init_eta
 
     def _link_callbacks(self):
-        #self.w_slider.observe(self._update_plot, names='value')
-        #self.b_slider.observe(self._update_plot, names='value')
-        #self.eta_slider.observe(self._update_plot, names='value')
         self.reset_button.on_click(self._reset)
     
     """ 
