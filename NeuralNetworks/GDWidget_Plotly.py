@@ -185,7 +185,7 @@ class GradientDescentVisualizer:
         )
 
         #display(controls, self.fig, out)
-        display(controls)
+        #display(controls)
         display(self.fig)
         display(out)
 
