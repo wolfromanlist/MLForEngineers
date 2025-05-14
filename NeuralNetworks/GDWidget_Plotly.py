@@ -164,7 +164,7 @@ class GradientDescentVisualizer:
 
  """
 
-import numpy as np
+""" import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import ipywidgets as widgets
@@ -343,4 +343,131 @@ class GradientDescentVisualizer:
 
         # Anzeige der Steuerelemente und des Bereichs, in dem der Plot gezeichnet wird.
         display(widgets.VBox([controls, self.plot_output_area]))
-        # display(updater_out_widget) # Kann meist weggelassen werden.
+        # display(updater_out_widget) # Kann meist weggelassen werden. """
+
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import ipywidgets as widgets
+from IPython.display import display
+
+class GradientDescentVisualizer:
+    def __init__(self, steps=5, w_range=(1.0, 3.0), b_range=(0.0, 2.0), eta_range=(0.0001, 0.005)):
+        # Daten
+        self.x = np.linspace(0, 20, 20)
+        rng = np.random.default_rng(2948292983384)
+        self.y = 2 * self.x + 1 + 10 * (rng.random(20) - 0.5)
+
+        # Parameter
+        self.steps = steps
+        self.init_w, self.init_b, self.init_eta = 1.0, 1.0, 0.0015
+        self.w_range, self.b_range, self.eta_range = w_range, b_range, eta_range
+
+        # Vorberechnung Meshgrid & MSE-Oberfläche
+        w_vals = np.linspace(*self.w_range, 100)
+        b_vals = np.linspace(*self.b_range, 100)
+        W_mesh, B_mesh = np.meshgrid(w_vals, b_vals, indexing='ij')
+        Z_mse = self.mse(self.y, self.y_hat(W_mesh, B_mesh))
+
+        # Static contour trace erstellen (wird nie neu berechnet)
+        self.contour_trace_spec = go.Contour(
+            x=w_vals,
+            y=b_vals,
+            z=Z_mse.T,
+            colorscale='Viridis',
+            contours=dict(showlabels=True),
+            colorbar=dict(title='Loss')
+        )
+
+        # Widgets
+        self._setup_widgets()
+        self.plot_output_area = widgets.Output()
+        self._link_callbacks()
+
+    def y_hat(self, w, b):
+        x = self.x
+        if np.isscalar(w) and np.isscalar(b):
+            return w * x + b
+        return x[:, None, None] * w[None, :, :] + b[None, :, :]
+
+    def mse(self, y_true, y_pred):
+        if y_pred.ndim == 1:
+            return np.mean((y_true - y_pred) ** 2)
+        return np.mean((y_true[:, None, None] - y_pred) ** 2, axis=0)
+
+    def compute_descent_path(self, w0, b0, eta):
+        w, b = w0, b0
+        history, errors = [(w, b)], [self.mse(self.y, self.y_hat(w, b))]
+        for _ in range(self.steps):
+            y_pred = self.y_hat(w, b)
+            dw = -2 * np.mean(self.x * (self.y - y_pred))
+            db = -2 * np.mean(self.y - y_pred)
+            w -= eta * dw; b -= eta * db
+            history.append((w, b))
+            errors.append(self.mse(self.y, self.y_hat(w, b)))
+        return history, errors
+
+    def _setup_widgets(self):
+        self.w_slider = widgets.FloatSlider(value=self.init_w,
+                                           min=self.w_range[0], max=self.w_range[1],
+                                           step=0.1, description='w₀:',
+                                           continuous_update=False)
+        self.b_slider = widgets.FloatSlider(value=self.init_b,
+                                           min=self.b_range[0], max=self.b_range[1],
+                                           step=0.1, description='b₀:',
+                                           continuous_update=False)
+        self.eta_slider = widgets.FloatSlider(value=self.init_eta,
+                                             min=self.eta_range[0], max=self.eta_range[1],
+                                             step=0.0001, readout_format='.4f',
+                                             description='η:', continuous_update=False)
+        self.reset_button = widgets.Button(description="Reset")
+
+    def _create_figure(self, ws, bs, errors):
+        fig = go.Figure(make_subplots(rows=1, cols=2,
+                                      subplot_titles=("Loss over Time", "Parameter Space")))
+        # Static contour (aus Specifications)
+        fig.add_trace(self.contour_trace_spec, row=1, col=2)
+
+        # Loss-Trace
+        fig.add_trace(go.Scatter(x=list(range(len(errors))), y=errors,
+                                 mode='lines+markers', name='Loss'),
+                      row=1, col=1)
+        fig.update_xaxes(title_text="Step", row=1, col=1)
+        fig.update_yaxes(title_text="Loss", row=1, col=1)
+
+        # Descent Path
+        fig.add_trace(go.Scatter(x=ws, y=bs,
+                                 mode='lines+markers',
+                                 marker=dict(symbol=['circle'] + ['triangle-up']*(len(ws)-1),
+                                             size=[6] + [12]*(len(ws)-1), color='red',
+                                             angle=[0]*len(ws), angleref='previous'),
+                                 line=dict(color='red'), name='Path'),
+                      row=1, col=2)
+        fig.update_xaxes(title_text="w", row=1, col=2)
+        fig.update_yaxes(title_text="b", row=1, col=2)
+
+        fig.update_layout(height=600, width=1000,
+                          showlegend=False, title_text='Gradient Descent')
+        return fig
+
+    def _update_plot(self, w0, b0, eta):
+        history, errors = self.compute_descent_path(w0, b0, eta)
+        ws, bs = zip(*history)
+        new_fig = self._create_figure(ws, bs, errors)
+        with self.plot_output_area:
+            self.plot_output_area.clear_output(wait=True)
+            display(new_fig)
+
+    def _reset(self, *_):
+        self.w_slider.value = self.init_w
+        self.b_slider.value = self.init_b
+        self.eta_slider.value = self.init_eta
+
+    def _link_callbacks(self):
+        widgets.interactive_output(self._update_plot,
+                                   {'w0': self.w_slider, 'b0': self.b_slider, 'eta': self.eta_slider})
+        self.reset_button.on_click(self._reset)
+
+    def show(self):
+        controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
+        display(widgets.VBox([controls, self.plot_output_area]))
