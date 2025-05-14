@@ -297,49 +297,49 @@ from IPython.display import display
 
 class GradientDescentVisualizer:
     def __init__(self, steps=5, w_range=(1.0, 3.0), b_range=(0.0, 2.0), eta_range=(0.0001, 0.005)):
-        # Daten
+        # Daten und Parameter
         self.x = np.linspace(0, 20, 20)
         rng = np.random.default_rng(2948292983384)
         self.y = 2 * self.x + 1 + 10 * (rng.random(20) - 0.5)
-
-        # Parameter
         self.steps = steps
         self.init_w, self.init_b, self.init_eta = 1.0, 1.0, 0.0015
         self.w_range, self.b_range, self.eta_range = w_range, b_range, eta_range
 
-        # Vorberechnung Meshgrid & MSE-Oberfläche für Contour
+        # Vorberechnung für Contour
         w_vals = np.linspace(*self.w_range, 100)
         b_vals = np.linspace(*self.b_range, 100)
         W_mesh, B_mesh = np.meshgrid(w_vals, b_vals, indexing='ij')
         Z_mse = self.mse(self.y, self.y_hat(W_mesh, B_mesh))
 
-        # Widgets initialisieren
+        # Widgets
         self._setup_widgets()
         self.plot_output_area = widgets.Output()
 
-        # FigureWidget einmalig erstellen
+        # Einmalige FigureWidget-Erstellung
         self.fig = go.FigureWidget(make_subplots(rows=1, cols=2,
                                                  subplot_titles=("Loss over Time", "Parameter Space")))
-        # Contour-Trace (statisch)
+        # Statischer Contour-Trace
         self.fig.add_trace(go.Contour(
             x=w_vals, y=b_vals, z=Z_mse.T,
             colorscale='Viridis', contours=dict(showlabels=True),
             colorbar=dict(title='Loss')
         ), row=1, col=2)
-        # Loss-Trace initial
+        # Initiale Pfaddaten
         hist, errs = self.compute_descent_path(self.init_w, self.init_b, self.init_eta)
-        self.loss_trace = self.fig.add_trace(go.Scatter(
-            x=list(range(len(errs))), y=errs,
-            mode='lines+markers', name='Loss'
-        ), row=1, col=1)
-        # Descent Path initial
         ws, bs = zip(*hist)
-        self.path_trace = self.fig.add_trace(go.Scatter(
-            x=ws, y=bs,
-            mode='lines+markers',
-            marker=dict(symbol=['circle'] + ['triangle-up']*(len(ws)-1), size=[6] + [12]*(len(ws)-1), color='red', angle=[0]*len(ws), angleref='previous'),
-            line=dict(color='red'), name='Path'
-        ), row=1, col=2)
+        # Loss-Trace
+        self.loss_trace = go.Scatter(x=list(range(len(errs))), y=errs,
+                                     mode='lines+markers', name='Loss')
+        self.fig.add_trace(self.loss_trace, row=1, col=1)
+        # Descent-Path-Trace
+        self.path_trace = go.Scatter(x=ws, y=bs,
+                                     mode='lines+markers',
+                                     marker=dict(symbol=['circle'] + ['triangle-up']*(len(ws)-1),
+                                                 size=[6] + [12]*(len(ws)-1), color='red',
+                                                 angle=[0]*len(ws), angleref='previous'),
+                                     line=dict(color='red'), name='Path')
+        self.fig.add_trace(self.path_trace, row=1, col=2)
+
         # Achsen fixieren
         self.fig.update_xaxes(title_text="Step", row=1, col=1)
         self.fig.update_yaxes(title_text="Loss", row=1, col=1)
@@ -353,10 +353,9 @@ class GradientDescentVisualizer:
         self._link_callbacks()
 
     def y_hat(self, w, b):
-        x = self.x
         if np.isscalar(w) and np.isscalar(b):
-            return w * x + b
-        return x[:, None, None] * w[None, :, :] + b[None, :, :]
+            return w * self.x + b
+        return self.x[:, None, None] * w[None, :, :] + b[None, :, :]
 
     def mse(self, y_true, y_pred):
         if y_pred.ndim == 1:
@@ -384,14 +383,13 @@ class GradientDescentVisualizer:
     def _update_plot(self, w0, b0, eta):
         history, errors = self.compute_descent_path(w0, b0, eta)
         ws, bs = zip(*history)
-        # Nur Traces updaten (kein neues Figure-Objekt)
+        # Nur die Traces aktualisieren
         with self.fig.batch_update():
-            self.fig.data[0].z = self.fig.data[0].z  # Contour bleibt statisch
-            self.fig.data[1].x = list(range(len(errors)));
-            self.fig.data[1].y = errors
-            self.fig.data[2].x = ws;
-            self.fig.data[2].y = bs
-        # Darstellung
+            self.loss_trace.x = list(range(len(errors)))
+            self.loss_trace.y = errors
+            self.path_trace.x = ws
+            self.path_trace.y = bs
+        # Plot im Output anzeigen
         with self.plot_output_area:
             self.plot_output_area.clear_output(wait=True)
             display(self.fig)
