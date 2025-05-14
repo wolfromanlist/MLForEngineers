@@ -289,15 +289,11 @@ class GradientDescentVisualizer:
         controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
         display(widgets.VBox([controls, self.plot_output_area]))
  """
-
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import ipywidgets as widgets
 from IPython.display import display
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
 
 class GradientDescentVisualizer:
     def __init__(self, steps=5, w_range=(1.0, 3.0), b_range=(0.0, 2.0), eta_range=(0.0001, 0.005)):
@@ -311,26 +307,49 @@ class GradientDescentVisualizer:
         self.init_w, self.init_b, self.init_eta = 1.0, 1.0, 0.0015
         self.w_range, self.b_range, self.eta_range = w_range, b_range, eta_range
 
-        # Vorberechnung Meshgrid & MSE-Oberfläche
+        # Vorberechnung Meshgrid & MSE-Oberfläche für Contour
         w_vals = np.linspace(*self.w_range, 100)
         b_vals = np.linspace(*self.b_range, 100)
         W_mesh, B_mesh = np.meshgrid(w_vals, b_vals, indexing='ij')
         Z_mse = self.mse(self.y, self.y_hat(W_mesh, B_mesh))
 
-        # Contour als PNG-Bild generieren
-        fig_mpl, ax = plt.subplots()
-        cs = ax.contour(W_mesh, B_mesh, Z_mse, cmap='viridis')
-        ax.axis('off')
-        buf = BytesIO()
-        fig_mpl.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
-        plt.close(fig_mpl)
-        buf.seek(0)
-        img_bytes = buf.getvalue()
-        self.contour_img_b64 = base64.b64encode(img_bytes).decode()
-
-        # Widgets
+        # Widgets initialisieren
         self._setup_widgets()
         self.plot_output_area = widgets.Output()
+
+        # FigureWidget einmalig erstellen
+        self.fig = go.FigureWidget(make_subplots(rows=1, cols=2,
+                                                 subplot_titles=("Loss over Time", "Parameter Space")))
+        # Contour-Trace (statisch)
+        self.fig.add_trace(go.Contour(
+            x=w_vals, y=b_vals, z=Z_mse.T,
+            colorscale='Viridis', contours=dict(showlabels=True),
+            colorbar=dict(title='Loss')
+        ), row=1, col=2)
+        # Loss-Trace initial
+        hist, errs = self.compute_descent_path(self.init_w, self.init_b, self.init_eta)
+        self.loss_trace = self.fig.add_trace(go.Scatter(
+            x=list(range(len(errs))), y=errs,
+            mode='lines+markers', name='Loss'
+        ), row=1, col=1)
+        # Descent Path initial
+        ws, bs = zip(*hist)
+        self.path_trace = self.fig.add_trace(go.Scatter(
+            x=ws, y=bs,
+            mode='lines+markers',
+            marker=dict(symbol=['circle'] + ['triangle-up']*(len(ws)-1), size=[6] + [12]*(len(ws)-1), color='red', angle=[0]*len(ws), angleref='previous'),
+            line=dict(color='red'), name='Path'
+        ), row=1, col=2)
+        # Achsen fixieren
+        self.fig.update_xaxes(title_text="Step", row=1, col=1)
+        self.fig.update_yaxes(title_text="Loss", row=1, col=1)
+        self.fig.update_xaxes(title_text="w", row=1, col=2,
+                               range=[self.w_range[0]-0.1, self.w_range[1]+0.1], fixedrange=True)
+        self.fig.update_yaxes(title_text="b", row=1, col=2,
+                               range=[self.b_range[0]-0.1, self.b_range[1]+0.1], fixedrange=True)
+        self.fig.update_layout(height=600, width=1000, showlegend=False, title_text='Gradient Descent')
+
+        # Callbacks verknüpfen
         self._link_callbacks()
 
     def y_hat(self, w, b):
@@ -357,63 +376,25 @@ class GradientDescentVisualizer:
         return history, errors
 
     def _setup_widgets(self):
-        self.w_slider = widgets.FloatSlider(value=self.init_w,
-                                           min=self.w_range[0], max=self.w_range[1],
-                                           step=0.1, description='w₀:')
-        self.b_slider = widgets.FloatSlider(value=self.init_b,
-                                           min=self.b_range[0], max=self.b_range[1],
-                                           step=0.1, description='b₀:')
-        self.eta_slider = widgets.FloatSlider(value=self.init_eta,
-                                             min=self.eta_range[0], max=self.eta_range[1],
-                                             step=0.0001, readout_format='.4f',
-                                             description='η:')
+        self.w_slider = widgets.FloatSlider(value=self.init_w, min=self.w_range[0], max=self.w_range[1], step=0.1, description='w₀:')
+        self.b_slider = widgets.FloatSlider(value=self.init_b, min=self.b_range[0], max=self.b_range[1], step=0.1, description='b₀:')
+        self.eta_slider = widgets.FloatSlider(value=self.init_eta, min=self.eta_range[0], max=self.eta_range[1], step=0.0001, readout_format='.4f', description='η:')
         self.reset_button = widgets.Button(description="Reset")
-
-    def _create_figure(self, ws, bs, errors):
-        fig = go.Figure(make_subplots(rows=1, cols=2,
-                                      subplot_titles=("Loss over Time", "Parameter Space")))
-        # Contour als Bild-Hintergrund
-        fig.add_layout_image(
-            dict(
-                source='data:image/png;base64,' + self.contour_img_b64,
-                x=self.w_range[0], y=self.b_range[1],
-                sizex=self.w_range[1] - self.w_range[0],
-                sizey=self.b_range[1] - self.b_range[0],
-                xref='x2', yref='y2', sizing='stretch', layer='below'
-            )
-        )
-
-        # Loss-Trace
-        fig.add_trace(go.Scatter(x=list(range(len(errors))), y=errors,
-                                 mode='lines+markers', name='Loss'),
-                      row=1, col=1)
-        fig.update_xaxes(title_text="Step", row=1, col=1)
-        fig.update_yaxes(title_text="Loss", row=1, col=1)
-
-        # Descent Path
-        fig.add_trace(go.Scatter(x=ws, y=bs,
-                                 mode='lines+markers',
-                                 marker=dict(symbol=['circle'] + ['triangle-up']*(len(ws)-1),
-                                             size=[6] + [12]*(len(ws)-1), color='red',
-                                             angle=[0]*len(ws), angleref='previous'),
-                                 line=dict(color='red'), name='Path'),
-                      row=1, col=2)
-        fig.update_xaxes(title_text="w", row=1, col=2,
-                         range=[self.w_range[0] - 0.1, self.w_range[1] + 0.1], fixedrange=True)
-        fig.update_yaxes(title_text="b", row=1, col=2,
-                         range=[self.b_range[0] - 0.1, self.b_range[1] + 0.1], fixedrange=True)
-
-        fig.update_layout(height=600, width=1000,
-                          showlegend=False, title_text='Gradient Descent')
-        return fig
 
     def _update_plot(self, w0, b0, eta):
         history, errors = self.compute_descent_path(w0, b0, eta)
         ws, bs = zip(*history)
-        new_fig = self._create_figure(ws, bs, errors)
+        # Nur Traces updaten (kein neues Figure-Objekt)
+        with self.fig.batch_update():
+            self.fig.data[0].z = self.fig.data[0].z  # Contour bleibt statisch
+            self.fig.data[1].x = list(range(len(errors)));
+            self.fig.data[1].y = errors
+            self.fig.data[2].x = ws;
+            self.fig.data[2].y = bs
+        # Darstellung
         with self.plot_output_area:
             self.plot_output_area.clear_output(wait=True)
-            display(new_fig)
+            display(self.fig)
 
     def _reset(self, *_):
         self.w_slider.value = self.init_w
@@ -421,8 +402,7 @@ class GradientDescentVisualizer:
         self.eta_slider.value = self.init_eta
 
     def _link_callbacks(self):
-        widgets.interactive_output(self._update_plot,
-                                   {'w0': self.w_slider, 'b0': self.b_slider, 'eta': self.eta_slider})
+        widgets.interactive_output(self._update_plot, {'w0': self.w_slider, 'b0': self.b_slider, 'eta': self.eta_slider})
         self.reset_button.on_click(self._reset)
 
     def show(self):
