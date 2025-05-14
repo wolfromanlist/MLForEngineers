@@ -1,4 +1,4 @@
-import numpy as np
+""" import numpy as np
 import plotly.graph_objects as go
 import plotly.colors
 import ipywidgets as widgets
@@ -261,3 +261,130 @@ class LinearRegressionVisualizer:
 
     #def show(self):
     #    display(self.w_slider, self.b_slider, self.fig)
+"""
+
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import ipywidgets as widgets
+from IPython.display import display
+
+class LinearRegressionVisualizer:
+    def __init__(self, n=5):
+        # Daten erzeugen
+        self.rng = np.random.default_rng(2948292983384)
+        self.x = np.linspace(0, 20, 20)
+        self.y = 2 * self.x + 1 + 10 * (self.rng.random(20) - 0.5)
+
+        # Gitter definieren und MSE-Raster vorberechnen (n x n, n ≤ 5 empfohlen)
+        self.n = n
+        self.w_vals = np.linspace(1, 3, self.n)
+        self.b_vals = np.linspace(0, 2, self.n)
+        self.W, self.B = np.meshgrid(self.w_vals, self.b_vals)
+        # MSE-Matrix einmalig
+        self.Z = np.array([[self._mse(self.y, self._line(w, b, self.x))
+                            for w in self.w_vals] for b in self.b_vals])
+        self.min_mse, self.max_mse = self.Z.min(), self.Z.max()
+        self.increment = self.w_vals[1] - self.w_vals[0]
+        self.half_rect = self.increment / 2
+        # Farbskala
+        self.colorscale = 'Viridis'
+        # Kachelung im Parameterraum (Rechteck-Mittelpunkte)
+        self.w_edges = np.linspace(self.w_vals[0] - self.half_rect,
+                                   self.w_vals[-1] + self.half_rect, self.n+1)
+        self.b_edges = np.linspace(self.b_vals[0] - self.half_rect,
+                                   self.b_vals[-1] + self.half_rect, self.n+1)
+
+        # Widgets
+        self.w_slider = widgets.FloatSlider(value=self.w_vals[0], min=self.w_vals[0],
+                                           max=self.w_vals[-1], step=self.increment,
+                                           description='w')
+        self.b_slider = widgets.FloatSlider(value=self.b_vals[0], min=self.b_vals[0],
+                                           max=self.b_vals[-1], step=self.increment,
+                                           description='b')
+        self.reset_button = widgets.Button(description="Reset", button_style='warning')
+        self.reset_button.on_click(self._reset)
+
+        # Output-Widget
+        self.plot_out = widgets.Output()
+        # Bind callbacks
+        widgets.interactive_output(self._update_plot,
+                                   {'w': self.w_slider, 'b': self.b_slider})
+
+    def _line(self, w, b, x):
+        return w * x + b
+
+    def _mse(self, y, y_pred):
+        return np.mean((y - y_pred) ** 2)
+
+    def _normalize(self, val):
+        return (val - self.min_mse) / (self.max_mse - self.min_mse)
+
+    def _mse_to_color(self, mse):
+        norm = self._normalize(mse)
+        # einfache lineare Interpolation auf Farben
+        cmap = np.array(go.Figure()._get_colorscale(self.colorscale))
+        idx = int(norm * (len(cmap)-1))
+        return f'rgb{tuple(int(c*255) for c in cmap[idx][1])}'
+
+    def _create_figure(self, w, b):
+        # Compute line and new cell
+        y_pred = self._line(w, b, self.x)
+        mse = self._mse(self.y, y_pred)
+
+        # neue Figure
+        fig = go.Figure(make_subplots(rows=1, cols=2,
+                                      subplot_titles=("Regression", "Parameterraum"),
+                                      horizontal_spacing=0.15))
+        # Regression-Plot (WebGL)
+        fig.add_trace(go.Scattergl(x=self.x, y=self.y, mode='markers',
+                                   marker=dict(color='blue', size=6),
+                                   name='Data'), row=1, col=1)
+        fig.add_trace(go.Scattergl(x=self.x, y=y_pred, mode='lines',
+                                   line=dict(width=2, color='red'), name='Fit'),
+                      row=1, col=1)
+        fig.update_xaxes(title_text='x', row=1, col=1, fixedrange=True)
+        fig.update_yaxes(title_text='y', row=1, col=1, fixedrange=True)
+
+        # Parameterraum-Contour (statisch)
+        fig.add_trace(go.Contour(x=self.w_vals, y=self.b_vals, z=self.Z,
+                                  colorscale=self.colorscale, showscale=False,
+                                  contours=dict(showlabels=False)),
+                      row=1, col=2)
+        # Rechteck für aktuellen Punkt
+        color = self._mse_to_color(mse)
+        rect_x = [w - self.half_rect, w + self.half_rect, w + self.half_rect, w - self.half_rect, w - self.half_rect]
+        rect_y = [b - self.half_rect, b - self.half_rect, b + self.half_rect, b + self.half_rect, b - self.half_rect]
+        fig.add_trace(go.Scatter(x=rect_x, y=rect_y, mode='lines', fill='toself',
+                                 fillcolor=color, line=dict(width=0)), row=1, col=2)
+        # Marker im Parameterraum
+        fig.add_trace(go.Scatter(x=[w], y=[b], mode='markers',
+                                 marker=dict(symbol='x', size=12, color='black'),
+                                 name='Current'), row=1, col=2)
+
+        fig.update_xaxes(title_text='w', row=1, col=2,
+                         range=[self.w_edges[0], self.w_edges[-1]], fixedrange=True)
+        fig.update_yaxes(title_text='b', row=1, col=2,
+                         range=[self.b_edges[0], self.b_edges[-1]], fixedrange=True)
+        fig.update_layout(height=500, width=900, showlegend=False)
+        return fig
+
+    def _update_plot(self, w, b):
+        # Neues Plot zeichnen
+        with self.plot_out:
+            self.plot_out.clear_output(wait=True)
+            fig = self._create_figure(w, b)
+            display(fig)
+
+    def _reset(self, _):
+        self.w_slider.value = self.w_vals[0]
+        self.b_slider.value = self.b_vals[0]
+
+    def show(self):
+        # Steuerelemente + initialer Plot
+        display(widgets.HBox([self.w_slider, self.b_slider, self.reset_button]))
+        # initial render
+        with self.plot_out:
+            fig0 = self._create_figure(self.w_vals[0], self.b_vals[0])
+            display(fig0)
+        display(self.plot_out)
