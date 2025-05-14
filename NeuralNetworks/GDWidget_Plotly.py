@@ -410,16 +410,14 @@ class GradientDescentVisualizer:
     def _setup_widgets(self):
         self.w_slider = widgets.FloatSlider(value=self.init_w,
                                            min=self.w_range[0], max=self.w_range[1],
-                                           step=0.1, description='w₀:',
-                                           continuous_update=False)
+                                           step=0.1, description='w₀:')
         self.b_slider = widgets.FloatSlider(value=self.init_b,
                                            min=self.b_range[0], max=self.b_range[1],
-                                           step=0.1, description='b₀:',
-                                           continuous_update=False)
+                                           step=0.1, description='b₀:')
         self.eta_slider = widgets.FloatSlider(value=self.init_eta,
                                              min=self.eta_range[0], max=self.eta_range[1],
                                              step=0.0001, readout_format='.4f',
-                                             description='η:', continuous_update=False)
+                                             description='η:')
         self.reset_button = widgets.Button(description="Reset")
 
     def _create_figure(self, ws, bs, errors):
