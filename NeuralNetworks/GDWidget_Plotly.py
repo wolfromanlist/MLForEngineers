@@ -307,8 +307,8 @@ class GradientDescentVisualizer:
         self.w_range, self.b_range, self.eta_range = w_range, b_range, eta_range
 
         # Vorberechnung Meshgrid & MSE-Oberfläche für Contour-Caching (50×50 statt 100×100)
-        w_vals = np.linspace(*self.w_range, 30)
-        b_vals = np.linspace(*self.b_range, 30)
+        w_vals = np.linspace(*self.w_range, 20)
+        b_vals = np.linspace(*self.b_range, 20)
         W_mesh, B_mesh = np.meshgrid(w_vals, b_vals, indexing='ij')
         Z_mse = self.mse(self.y, self.y_hat(W_mesh, B_mesh))
 
@@ -393,7 +393,7 @@ class GradientDescentVisualizer:
                          range=[self.b_range[0]-0.1, self.b_range[1]+0.1], fixedrange=True)
 
         # Layout nur einmal setzen
-        fig.layout.update(height=400, width=600, showlegend=False, title='Gradient Descent')
+        fig.layout.update(height=400, width=650, showlegend=False, title='Gradient Descent')
         return fig
 
     def _update_plot(self, w0, b0, eta):
