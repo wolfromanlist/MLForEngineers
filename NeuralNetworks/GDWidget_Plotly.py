@@ -162,8 +162,9 @@ class GradientDescentVisualizer:
         display(self.fig)
         display(out)
 
- """
+"""
 
+""" 
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -405,5 +406,11 @@ class GradientDescentVisualizer:
 
     def show(self):
         controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
-        display(widgets.VBox([controls, self.plot_output_area]))
-""" 
+        display(controls)
+
+        # 1) Registriere die FigureWidget beim Widget-Manager
+        with self.plot_output_area:
+            display(self.fig)
+
+        # 2) Zeige den Output-Bereich, in dem alle künftigen batch_update-Aufrufe landen
+        display(self.plot_output_area)
