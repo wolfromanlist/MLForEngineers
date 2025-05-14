@@ -290,7 +290,6 @@ class GradientDescentVisualizer:
         controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
         display(widgets.VBox([controls, self.plot_output_area]))
 """
-
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -374,13 +373,17 @@ class GradientDescentVisualizer:
         fig.update_xaxes(title_text="Step", row=1, col=1)
         fig.update_yaxes(title_text="Loss", row=1, col=1)
 
-        # Descent Path mit WebGL
-        fig.add_trace(go.Scattergl(
+        # Descent Path mit Standard-Scatter für Winkel- und Pfeildarstellung
+        fig.add_trace(go.Scatter(
             x=ws, y=bs,
             mode='lines+markers',
-            marker=dict(symbol=['circle'] + ['triangle-up']*(len(ws)-1),
-                        size=[6] + [12]*(len(ws)-1), color='red',
-                        angle=[0]*len(ws), angleref='previous'),
+            marker=dict(
+                symbol=['circle'] + ['triangle-up']*(len(ws)-1),
+                size=[6] + [12]*(len(ws)-1),
+                color='red',
+                angle=[0]*len(ws),     # gleiche Winkel für Konsistenz
+                angleref='previous'    # unterstützt nur bei go.Scatter
+            ),
             line=dict(color='red'), name='Path'
         ), row=1, col=2)
         # Feste Achsenbereiche
@@ -419,5 +422,6 @@ class GradientDescentVisualizer:
         # Initiales Rendern
         with self.plot_output:
             hist, errs = self.compute_descent_path(self.init_w, self.init_b, self.init_eta)
-            display(self._create_figure(*zip(*[(ws, bs, errs) for ws, bs, errs in [(zip(*hist)[0], zip(*hist)[1], errs)]])))
+            ws0, bs0 = zip(*hist)
+            display(self._create_figure(ws0, bs0, errs))
         display(self.plot_output)
