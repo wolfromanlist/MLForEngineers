@@ -262,11 +262,11 @@ class LinearRegressionVisualizer:
     #def show(self):
     #    display(self.w_slider, self.b_slider, self.fig)
 """
-
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import ipywidgets as widgets
+from plotly import colors as pc
 from IPython.display import display
 
 class LinearRegressionVisualizer:
@@ -322,10 +322,11 @@ class LinearRegressionVisualizer:
 
     def _mse_to_color(self, mse):
         norm = self._normalize(mse)
-        # einfache lineare Interpolation auf Farben
-        cmap = np.array(go.Figure()._get_colorscale(self.colorscale))
-        idx = int(norm * (len(cmap)-1))
-        return f'rgb{tuple(int(c*255) for c in cmap[idx][1])}'
+        # Farbenliste aus plotly.colors
+        cs = pc.get_colorscale(self.colorscale)
+        idx = int(norm * (len(cs)-1))
+        # cs entries are [fraction, color_str]
+        return cs[idx][1]
 
     def _create_figure(self, w, b):
         # Compute line and new cell
