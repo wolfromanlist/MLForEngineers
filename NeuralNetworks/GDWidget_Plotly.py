@@ -164,7 +164,7 @@ class GradientDescentVisualizer:
 
  """
 
-""" import numpy as np
+import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import ipywidgets as widgets
@@ -406,3 +406,4 @@ class GradientDescentVisualizer:
     def show(self):
         controls = widgets.VBox([self.w_slider, self.b_slider, self.eta_slider, self.reset_button])
         display(widgets.VBox([controls, self.plot_output_area]))
+""" 
