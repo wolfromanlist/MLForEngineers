@@ -268,6 +268,7 @@ import plotly.colors
 import ipywidgets as widgets
 from IPython.display import display
 from plotly.subplots import make_subplots
+from IPython.display import clear_output
 
 class LinearRegressionVisualizer:
     def __init__(self, n=5):
@@ -423,7 +424,6 @@ class LinearRegressionVisualizer:
                                y0=b, y1=b,
                                line=dict(color="lightgray", width=1),
                                xref="x2", yref="y2", layer="below")
-
     def _update_plot(self, change=None):
         w = self.w_slider.value
         b = self.b_slider.value
@@ -461,7 +461,6 @@ class LinearRegressionVisualizer:
             self.fig.add_trace(rect, row=1, col=2)
             self.visited_points[point_key] = rect
 
-            # Farblegende aktualisieren
             if current_mse not in self.bounds_list:
                 self.bounds_list.append(current_mse)
                 self.bounds_list.sort()
@@ -472,6 +471,11 @@ class LinearRegressionVisualizer:
                     step = 2
                 self.color_dummy.marker.colorbar.tickvals = self.bounds_list[::step]
                 self.color_dummy.marker.colorbar.ticktext = [f"{v:.2f}" for v in self.bounds_list[::step]]
+
+        # 👉 Wichtig: Figure neu anzeigen
+        clear_output(wait=True)
+        display(widgets.HBox([self.w_slider, self.b_slider, self.reset_button]), self.fig)
+
 
     def _reset(self, _=None):
         self.w_slider.value = self.w_vals[0]
