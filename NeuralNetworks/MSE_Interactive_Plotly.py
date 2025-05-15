@@ -262,7 +262,6 @@ class LinearRegressionVisualizer:
     #def show(self):
     #    display(self.w_slider, self.b_slider, self.fig)
 """
-
 import numpy as np
 import plotly.graph_objects as go
 import plotly.colors
@@ -275,7 +274,7 @@ class LinearRegressionVisualizer:
         self.plot_out = widgets.Output()
 
         self.generator = np.random.default_rng(2948292983384)
-        self.x = np.linspace(0, 20, 20) 
+        self.x = np.linspace(0, 20, 20)
         self.y = 2 * self.x + 1 + 10 * (self.generator.random(20) - 0.5)
 
         self.n = n
@@ -354,7 +353,7 @@ class LinearRegressionVisualizer:
 
             fig.update_layout(
                 height=600,
-                width=850,
+                width=1100,
                 xaxis=dict(range=[-2, 22], title="x", fixedrange=True),
                 yaxis=dict(range=[-2, 47], title="y", fixedrange=True),
                 xaxis2=dict(
