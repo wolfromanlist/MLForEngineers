@@ -383,8 +383,8 @@ class LinearRegressionVisualizer:
                 fig.add_shape(type="line", x0=self.w_edges[0], x1=self.w_edges[-1], y0=b_val, y1=b_val, line=dict(color="lightgray", width=1), xref="x2", yref="y2", layer="below")
 
             for (w_val, b_val) in self.visited_points:
-                idx_w = np.where(self.w_vals == w_val)[0][0]
-                idx_b = np.where(self.b_vals == b_val)[0][0]
+                idx_w = int(round((w - self.w_vals[0]) / self.increment))
+                idx_b = int(round((b - self.b_vals[0]) / self.increment))
                 mse_val = self.Z[idx_b, idx_w]
                 color = self._mse_to_color(mse_val)
 
