@@ -275,7 +275,7 @@ class LinearRegressionVisualizer:
         self.plot_out = widgets.Output()
 
         self.generator = np.random.default_rng(2948292983384)
-        self.x = np.linspace(0, 20, 20)
+        self.x = np.linspace(0, 20, 20) 
         self.y = 2 * self.x + 1 + 10 * (self.generator.random(20) - 0.5)
 
         self.n = n
