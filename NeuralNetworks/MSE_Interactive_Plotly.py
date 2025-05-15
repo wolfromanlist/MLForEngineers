@@ -262,22 +262,20 @@ class LinearRegressionVisualizer:
     #def show(self):
     #    display(self.w_slider, self.b_slider, self.fig)
 """
+
 import numpy as np
 import plotly.graph_objects as go
 import plotly.colors
 import ipywidgets as widgets
-from IPython.display import display
+from IPython.display import display, clear_output
 from plotly.subplots import make_subplots
-from IPython.display import clear_output
 
 class LinearRegressionVisualizer:
     def __init__(self, n=5):
-        # Daten erzeugen
         self.generator = np.random.default_rng(2948292983384)
         self.x = np.linspace(0, 20, 20)
         self.y = 2 * self.x + 1 + 10 * (self.generator.random(20) - 0.5)
 
-        # Gitter definieren
         self.n = n
         self.w_vals = np.linspace(1, 3, self.n)
         self.b_vals = np.linspace(0, 2, self.n)
@@ -292,7 +290,6 @@ class LinearRegressionVisualizer:
         self.w_edges = np.linspace(self.w_vals[0] - self.half_rect, self.w_vals[-1] + self.half_rect, self.n + 1)
         self.b_edges = np.linspace(self.b_vals[0] - self.half_rect, self.b_vals[-1] + self.half_rect, self.n + 1)
 
-        # Widgets
         self.w_slider = widgets.FloatSlider(
             value=self.w_vals[0],
             min=self.w_vals[0],
@@ -310,16 +307,15 @@ class LinearRegressionVisualizer:
         self.reset_button = widgets.Button(description="Reset", button_style='warning')
         self.reset_button.on_click(self._reset)
 
-        self.visited_points = {}
+        self.plot_out = widgets.Output()
+        self.visited_points = set()
         self.bounds_list = []
-
-        # Plot vorbereiten
-        self._init_figure()
-        self._update_plot()
 
         self.w_slider.observe(self._update_plot, names="value")
         self.b_slider.observe(self._update_plot, names="value")
 
+        self._update_plot()
+    
     def _line(self, m, b, input_x):
         return m * input_x + b
 
@@ -334,19 +330,23 @@ class LinearRegressionVisualizer:
         index = int(norm_val * (len(self.colorscale) - 1))
         return self.colorscale[index]
 
-    def _init_figure(self):
-        self.fig = make_subplots(rows=1, cols=2, subplot_titles=("Regression", "Parameterraum"), horizontal_spacing=0.15)
+    def _update_plot(self, change=None):
+        w = self.w_slider.value
+        b = self.b_slider.value
+        point_key = (w, b)
+        y_pred = self._line(w, b, self.x)
+        current_mse = self._mse(self.y, y_pred)
+        norm_mse = 0.956 * self._normalize_mse(current_mse) - 0.005
+
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Regression", "Parameterraum"), horizontal_spacing=0.15)
 
         # Regressionsplot
-        self.line = go.Scatter(x=self.x, y=self._line(self.w_slider.value, self.b_slider.value, self.x),
-                               mode='lines', showlegend=False)
-        self.scatter = go.Scatter(x=self.x, y=self.y, mode='markers',
-                                  showlegend=False, marker=dict(color='blue', size=10))
-        self.fig.add_trace(self.line, row=1, col=1)
-        self.fig.add_trace(self.scatter, row=1, col=1)
+        fig.add_trace(go.Scatter(x=self.x, y=y_pred, mode='lines', showlegend=False), row=1, col=1)
+        fig.add_trace(go.Scatter(x=self.x, y=self.y, mode='markers',
+                                 marker=dict(color='blue', size=10), showlegend=False), row=1, col=1)
 
-        # Dummy-Colorbar
-        self.color_dummy = go.Scatter(
+        # Dummy Colorbar
+        fig.add_trace(go.Scatter(
             x=[None], y=[None],
             mode="markers",
             marker=dict(
@@ -363,35 +363,87 @@ class LinearRegressionVisualizer:
                 showscale=True
             ),
             showlegend=False
-        )
-        self.fig.add_trace(self.color_dummy, row=1, col=2)
+        ), row=1, col=2)
 
-        # Cross-Marker
-        self.cross_marker = go.Scatter(
-            x=[self.w_slider.value],
-            y=[self.b_slider.value],
+        # Rechtecke
+        all_rects = []
+        for (w_val, b_val) in self.visited_points:
+            mse_val = self._mse(self.y, self._line(w_val, b_val, self.x))
+            color = self._mse_to_color(mse_val)
+            x0 = w_val - self.half_rect
+            x1 = w_val + self.half_rect
+            y0 = b_val - self.half_rect
+            y1 = b_val + self.half_rect
+            all_rects.append(go.Scatter(
+                x=[x0, x1, x1, x0, x0],
+                y=[y0, y0, y1, y1, y0],
+                fill="toself",
+                fillcolor=color,
+                line=dict(width=0),
+                mode="lines",
+                showlegend=False
+            ))
+
+        if point_key not in self.visited_points:
+            self.visited_points.add(point_key)
+            self.bounds_list.append(current_mse)
+            self.bounds_list.sort()
+            step = 1
+            if len(self.bounds_list) > 20:
+                step = 5
+            elif len(self.bounds_list) > 5:
+                step = 2
+            tickvals = self.bounds_list[::step]
+            ticktext = [f"{v:.2f}" for v in tickvals]
+        else:
+            tickvals = self.bounds_list
+            ticktext = [f"{v:.2f}" for v in tickvals]
+
+        for rect in all_rects:
+            fig.add_trace(rect, row=1, col=2)
+
+        # Kreuzmarker
+        fig.add_trace(go.Scatter(
+            x=[w],
+            y=[b],
             mode="markers",
             marker=dict(symbol="x", color="black", size=12),
             showlegend=False
+        ), row=1, col=2)
+
+        # Annotation (MSE & Marker)
+        fig.add_annotation(
+            dict(
+                x=1.04,
+                y=norm_mse,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                text=f"{current_mse:.2f} ▶",
+                font=dict(size=18, color='black')
+            )
         )
-        self.fig.add_trace(self.cross_marker, row=1, col=2)
 
-        # Rechtecke (werden später ergänzt)
-
-        # Annotation für Colorbar
-        norm_mse = 0.956 * self._normalize_mse(self._mse(self.y, self._line(self.w_slider.value, self.b_slider.value, self.x))) - 0.005
-        self.annotation = dict(
-            x=1.04,
-            y=norm_mse,
-            xref='paper',
-            yref='paper',
-            showarrow=False,
-            text='▶',
-            font=dict(size=18, color='black')
+        fig.add_annotation(
+            xref='paper', yref='paper',
+            x=0.1, y=1.15, showarrow=False,
+            text=f"MSE: {current_mse:.2f}", font=dict(size=16)
         )
-        self.fig.update_layout(annotations=[self.annotation])
 
-        self.fig.update_layout(
+        # Gitterlinien
+        for w_edge in self.w_edges:
+            fig.add_shape(type="line", x0=w_edge, x1=w_edge,
+                          y0=self.b_edges[0], y1=self.b_edges[-1],
+                          line=dict(color="lightgray", width=1),
+                          xref="x2", yref="y2", layer="below")
+        for b_edge in self.b_edges:
+            fig.add_shape(type="line", x0=self.w_edges[0], x1=self.w_edges[-1],
+                          y0=b_edge, y1=b_edge,
+                          line=dict(color="lightgray", width=1),
+                          xref="x2", yref="y2", layer="below")
+
+        # Layout
+        fig.update_layout(
             height=600,
             width=1100,
             xaxis=dict(range=[-2, 22], title="x", fixedrange=True),
@@ -413,88 +465,19 @@ class LinearRegressionVisualizer:
             )
         )
 
-        # Gridlines
-        for w in self.w_edges:
-            self.fig.add_shape(type="line", x0=w, x1=w,
-                               y0=self.b_edges[0], y1=self.b_edges[-1],
-                               line=dict(color="lightgray", width=1),
-                               xref="x2", yref="y2", layer="below")
-        for b in self.b_edges:
-            self.fig.add_shape(type="line", x0=self.w_edges[0], x1=self.w_edges[-1],
-                               y0=b, y1=b,
-                               line=dict(color="lightgray", width=1),
-                               xref="x2", yref="y2", layer="below")
-    def _update_plot(self, change=None):
-        w = self.w_slider.value
-        b = self.b_slider.value
-        point_key = (w, b)
+        fig.data[2].marker.colorbar.tickvals = tickvals
+        fig.data[2].marker.colorbar.ticktext = ticktext
 
-        y_pred = self._line(w, b, self.x)
-        current_mse = self._mse(self.y, y_pred)
-        norm_mse = 0.956 * self._normalize_mse(current_mse) - 0.005
-
-        self.line.y = y_pred
-        self.cross_marker.x = [w]
-        self.cross_marker.y = [b]
-
-        # Annotation aktualisieren
-        self.fig.layout.annotations[0].text = f"{current_mse:.2f} ▶"
-        self.fig.layout.annotations[0].y = norm_mse
-
-        # Neues Rechteck, falls noch nicht vorhanden
-        if point_key not in self.visited_points:
-            x0 = w - self.half_rect
-            x1 = w + self.half_rect
-            y0 = b - self.half_rect
-            y1 = b + self.half_rect
-            color = self._mse_to_color(current_mse)
-
-            rect = go.Scatter(
-                x=[x0, x1, x1, x0, x0],
-                y=[y0, y0, y1, y1, y0],
-                fill="toself",
-                fillcolor=color,
-                line=dict(width=0),
-                mode="lines",
-                showlegend=False
-            )
-            self.fig.add_trace(rect, row=1, col=2)
-            self.visited_points[point_key] = rect
-
-            if current_mse not in self.bounds_list:
-                self.bounds_list.append(current_mse)
-                self.bounds_list.sort()
-                step = 1
-                if len(self.bounds_list) > 20:
-                    step = 5
-                elif len(self.bounds_list) > 5:
-                    step = 2
-                self.color_dummy.marker.colorbar.tickvals = self.bounds_list[::step]
-                self.color_dummy.marker.colorbar.ticktext = [f"{v:.2f}" for v in self.bounds_list[::step]]
-
-        # 👉 Wichtig: Figure neu anzeigen
-        clear_output(wait=True)
-        display(widgets.HBox([self.w_slider, self.b_slider, self.reset_button]), self.fig)
-
+        with self.plot_out:
+            clear_output(wait=True)
+            display(fig)
 
     def _reset(self, _=None):
-        self.w_slider.value = self.w_vals[0]
-        self.b_slider.value = self.b_vals[0]
         self.visited_points.clear()
         self.bounds_list.clear()
-
-        # Nur erste vier Traces behalten: Linie, Punkte, Colorbar-Dummy, Marker
-        self.fig.data = self.fig.data[:4]
-
-        # Annotation zurücksetzen
-        self.fig.layout.annotations[0].text = "▶"
-        self.fig.layout.annotations[0].y = 0
-
-        # Colorbar-Ticks zurücksetzen
-        self.color_dummy.marker.colorbar.tickvals = []
-        self.color_dummy.marker.colorbar.ticktext = []
-
+        self.w_slider.value = self.w_vals[0]
+        self.b_slider.value = self.b_vals[0]
         self._update_plot()
 
     def show(self):
-        display(widgets.HBox([self.w_slider, self.b_slider, self.reset_button]), self.fig)
+        display(widgets.HBox([self.w_slider, self.b_slider, self.reset_button]), self.plot_out)
