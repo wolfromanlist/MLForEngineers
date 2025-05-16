@@ -284,10 +284,10 @@ class LinearRegressionVisualizer:
         self.Z = np.array([[self._mse(self.y, self._line(w, b, self.x)) for w in self.w_vals] for b in self.b_vals])
         self.min_mse = self.Z.min()
         self.max_mse = self.Z.max()
-        self.color_grid = np.array([[self._mse_to_color(self.Z[i, j]) for j in range(self.n)] for i in range(self.n)])
         self.increment = self.w_vals[1] - self.w_vals[0]
         self.half_rect = self.increment / 2
         self.colorscale = plotly.colors.sequential.Viridis
+        self.color_grid = np.array([[self._mse_to_color(self.Z[i, j]) for j in range(self.n)] for i in range(self.n)])
 
         self.w_edges = np.linspace(self.w_vals[0] - self.half_rect, self.w_vals[-1] + self.half_rect, self.n + 1)
         self.b_edges = np.linspace(self.b_vals[0] - self.half_rect, self.b_vals[-1] + self.half_rect, self.n + 1)
