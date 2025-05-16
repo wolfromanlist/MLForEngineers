@@ -297,7 +297,6 @@ class LinearRegressionVisualizer:
         self.reset_button.on_click(self._reset)
 
         self.visited_points = set()
-        self.bounds_list = []
 
         self._update_plot()
 
@@ -325,18 +324,12 @@ class LinearRegressionVisualizer:
             w = self.w_slider.value
             b = self.b_slider.value
             point_key = (w, b)
+            idx_w = int(round((w - self.w_vals[0]) / self.increment))
+            idx_b = int(round((b - self.b_vals[0]) / self.increment))
+            current_mse = self.Z[idx_b, idx_w]
 
             if point_key not in self.visited_points:
                 self.visited_points.add(point_key)
-                idx_w = int(round((w - self.w_vals[0]) / self.increment))
-                idx_b = int(round((b - self.b_vals[0]) / self.increment))
-                current_mse = self.Z[idx_b, idx_w]
-                self.bounds_list.append(current_mse)
-                self.bounds_list.sort()
-            else:
-                idx_w = int(round((w - self.w_vals[0]) / self.increment))
-                idx_b = int(round((b - self.b_vals[0]) / self.increment))
-                current_mse = self.Z[idx_b, idx_w]
 
             norm_mse = 0.956 * self._normalize_mse(current_mse) - 0.005
 
@@ -345,7 +338,7 @@ class LinearRegressionVisualizer:
             fig.add_trace(go.Scatter(x=self.x, y=self._line(w, b, self.x), mode='lines', showlegend=False), row=1, col=1)
             fig.add_trace(go.Scatter(x=self.x, y=self.y, mode='markers', showlegend=False, marker=dict(color='blue', size=10)), row=1, col=1)
 
-            fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(colorscale=self.colorscale, cmin=self.min_mse, cmax=self.max_mse, color=[self.min_mse], colorbar=dict(title="MSE", tickmode="array", tickvals=self.bounds_list, ticktext=[f"{v:.2f}" for v in self.bounds_list]), showscale=True), showlegend=False), row=1, col=2)
+            fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(colorscale=self.colorscale, cmin=self.min_mse, cmax=self.max_mse, color=[self.min_mse], colorbar=dict(title="MSE"), showscale=True), showlegend=False), row=1, col=2)
 
             fig.add_trace(go.Scatter(x=[w], y=[b], mode="markers", marker=dict(symbol="x", color="black", size=12), showlegend=False), row=1, col=2)
 
@@ -383,8 +376,8 @@ class LinearRegressionVisualizer:
                 fig.add_shape(type="line", x0=self.w_edges[0], x1=self.w_edges[-1], y0=b_val, y1=b_val, line=dict(color="lightgray", width=1), xref="x2", yref="y2", layer="below")
 
             for (w_val, b_val) in self.visited_points:
-                idx_w = int(round((w - self.w_vals[0]) / self.increment))
-                idx_b = int(round((b - self.b_vals[0]) / self.increment))
+                idx_w = int(round((w_val - self.w_vals[0]) / self.increment))
+                idx_b = int(round((b_val - self.b_vals[0]) / self.increment))
                 mse_val = self.Z[idx_b, idx_w]
                 color = self._mse_to_color(mse_val)
 
@@ -398,7 +391,6 @@ class LinearRegressionVisualizer:
         self.w_slider.value = self.w_vals[0]
         self.b_slider.value = self.b_vals[0]
         self.visited_points.clear()
-        self.bounds_list.clear()
         self._update_plot()
 
     def show(self):
