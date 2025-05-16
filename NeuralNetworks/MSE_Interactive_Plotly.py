@@ -282,6 +282,7 @@ class LinearRegressionVisualizer:
         self.b_vals = np.linspace(0, 2, self.n)
         self.W, self.B = np.meshgrid(self.w_vals, self.b_vals)
         self.Z = np.array([[self._mse(self.y, self._line(w, b, self.x)) for w in self.w_vals] for b in self.b_vals])
+        self.color_grid = np.array([[self._mse_to_color(self.Z[i, j]) for j in range(self.n)] for i in range(self.n)])
         self.min_mse = self.Z.min()
         self.max_mse = self.Z.max()
         self.increment = self.w_vals[1] - self.w_vals[0]
@@ -297,6 +298,15 @@ class LinearRegressionVisualizer:
         self.reset_button.on_click(self._reset)
 
         self.visited_points = set()
+
+        self.base_shapes = []
+        for w_val in self.w_edges:
+            self.base_shapes.append(dict(type="line", x0=w_val, x1=w_val, y0=self.b_edges[0], y1=self.b_edges[-1],
+                                        line=dict(color="lightgray", width=1), xref="x2", yref="y2", layer="below"))
+        for b_val in self.b_edges:
+            self.base_shapes.append(dict(type="line", x0=self.w_edges[0], x1=self.w_edges[-1], y0=b_val, y1=b_val,
+                                        line=dict(color="lightgray", width=1), xref="x2", yref="y2", layer="below"))
+
 
         self._update_plot()
 
@@ -346,7 +356,7 @@ class LinearRegressionVisualizer:
 
             fig.update_layout(
                 height=600,
-                width=1100,
+                width=850,
                 xaxis=dict(range=[-2, 22], title="x", fixedrange=True),
                 yaxis=dict(range=[-2, 47], title="y", fixedrange=True),
                 xaxis2=dict(
@@ -370,20 +380,23 @@ class LinearRegressionVisualizer:
                 )
             )
 
-            for w_val in self.w_edges:
-                fig.add_shape(type="line", x0=w_val, x1=w_val, y0=self.b_edges[0], y1=self.b_edges[-1], line=dict(color="lightgray", width=1), xref="x2", yref="y2", layer="below")
-            for b_val in self.b_edges:
-                fig.add_shape(type="line", x0=self.w_edges[0], x1=self.w_edges[-1], y0=b_val, y1=b_val, line=dict(color="lightgray", width=1), xref="x2", yref="y2", layer="below")
-
+            dynamic_rectangle_shapes = []
             for (w_val, b_val) in self.visited_points:
                 idx_w = int(round((w_val - self.w_vals[0]) / self.increment))
                 idx_b = int(round((b_val - self.b_vals[0]) / self.increment))
-                mse_val = self.Z[idx_b, idx_w]
-                color = self._mse_to_color(mse_val)
+                color = self.color_grid[idx_b, idx_w]
 
-                fig.add_shape(type="rect", x0=w_val - self.half_rect, y0=b_val - self.half_rect,
-                              x1=w_val + self.half_rect, y1=b_val + self.half_rect,
-                              xref="x2", yref="y2", line=dict(width=0), fillcolor=color, layer='below')
+                dynamic_rectangle_shapes.append(dict(
+                    type="rect",
+                    x0=w_val - self.half_rect, y0=b_val - self.half_rect,
+                    x1=w_val + self.half_rect, y1=b_val + self.half_rect,
+                    xref="x2", yref="y2",
+                    line=dict(width=0),
+                    fillcolor=color,
+                    layer='below'
+                ))
+
+            fig.update_layout(shapes=self.base_shapes + dynamic_rectangle_shapes)
 
             display(fig)
 
