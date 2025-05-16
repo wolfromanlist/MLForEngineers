@@ -328,14 +328,14 @@ class LinearRegressionVisualizer:
 
             if point_key not in self.visited_points:
                 self.visited_points.add(point_key)
-                idx_w = np.where(self.w_vals == w)[0][0]
-                idx_b = np.where(self.b_vals == b)[0][0]
+                idx_w = int(round((w - self.w_vals[0]) / self.increment))
+                idx_b = int(round((b - self.b_vals[0]) / self.increment))
                 current_mse = self.Z[idx_b, idx_w]
                 self.bounds_list.append(current_mse)
                 self.bounds_list.sort()
             else:
-                idx_w = np.where(self.w_vals == w)[0][0]
-                idx_b = np.where(self.b_vals == b)[0][0]
+                idx_w = int(round((w - self.w_vals[0]) / self.increment))
+                idx_b = int(round((b - self.b_vals[0]) / self.increment))
                 current_mse = self.Z[idx_b, idx_w]
 
             norm_mse = 0.956 * self._normalize_mse(current_mse) - 0.005
