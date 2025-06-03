@@ -22,30 +22,31 @@ class RegressionWidget():
         return 1 / len(y_real) * np.sum((y_real - y_predicted) ** 2)
 
 
-def update(self, change=None):
-    with self.output:
-        clear_output(wait=True)
-        w = self.w_slider.value
-        b = self.b_slider.value
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=self.x, y=self.y_real, mode='markers', name='Daten'))
-        fig.add_trace(go.Scatter(x=self.x, y=self.my_line(w, b, x), mode='lines', name='Linie', line=dict(color='blue')))
-        fig.update_layout(
-            title={"text": f"MSE: {self.mse(self.y_real, self.my_line(w, b, self.x)):.2f}", "x": 0.5},
-            xaxis_title="x",
-            yaxis_title="y",
-            width=800,
-            height=500
-        )
-        fig.show()
+    def update(self, change=None):
+        with self.output:
+            clear_output(wait=True)
+            w = self.w_slider.value
+            b = self.b_slider.value
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=self.x, y=self.y_real, mode='markers', name='Daten'))
+            fig.add_trace(go.Scatter(x=self.x, y=self.my_line(w, b, self.x), mode='lines', name='Linie', line=dict(color='blue')))
+            fig.update_layout(
+                title={"text": f"MSE: {self.mse(self.y_real, self.my_line(w, b, self.x)):.2f}", "x": 0.5},
+                xaxis_title="x",
+                yaxis_title="y",
+                width=800,
+                height=500
+            )
+            fig.show()
 
-    # Callbacks verbinden
-    self.w_slider.observe(update, names="value")
-    self.b_slider.observe(update, names="value")
+    def show(self):
+        # Callbacks verbinden
+        self.w_slider.observe(self.update, names="value")
+        self.b_slider.observe(self.update, names="value")
 
-    # Anzeigen
-    display(widgets.HBox([self.b_slider, self.w_slider]))
-    display(self.output)
+        # Anzeigen
+        display(widgets.HBox([self.b_slider, self.w_slider]))
+        display(self.output)
 
-    # Initiales Zeichnen
-    update()
+        # Initiales Zeichnen
+        self.update()
