@@ -13,8 +13,8 @@ def plot_two_point_loss(y1, y2, yhat1, yhat2, show_bce=True, show_mse=False, sho
     lik2 = yhat2 if y2 == 1 else 1 - yhat2
 
     # Gesamtloss / Likelihood
-    total_bce = (bce1 + bce2) / 2
-    total_mse = (mse1 + mse2) / 2
+    total_bce = (bce1 + bce2)
+    total_mse = (mse1 + mse2)
     total_likelihood = lik1 * lik2
 
     text = f"""
@@ -56,9 +56,9 @@ def disp():
     interact(
     plot_two_point_loss,
     y1=RadioButtons(options=[0, 1], value=1, description='y₁:'),
-    yhat1=FloatSlider(value=0.8, min=0.01, max=0.99, step=0.01, description="ŷ₁"),
+    yhat1=FloatSlider(value=0.8, min=0.001, max=0.999, step=0.001, description="ŷ₁"),
     y2=RadioButtons(options=[0, 1], value=0, description='y₂:'),
-    yhat2=FloatSlider(value=0.2, min=0.01, max=0.99, step=0.01, description="ŷ₂"),
+    yhat2=FloatSlider(value=0.2, min=0.001, max=0.999, step=0.001, description="ŷ₂"),
     show_bce=Checkbox(value=True, description="BCE"),
     show_mse=Checkbox(value=False, description="MSE"),
     show_likelihood=Checkbox(value=True, description="Likelihood"),
