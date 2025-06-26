@@ -1,6 +1,7 @@
 import numpy as np
 import plotly.graph_objects as go
 import ipywidgets as widgets
+import matplotlib.pyplot as plt
 from ipywidgets import interact, FloatSlider, RadioButtons, Checkbox, VBox, HBox
 
 
@@ -89,8 +90,24 @@ def update_plot(w, b):
     fig = go.Figure()
 
     # Datenpunkte mit Farben nach Label
-    fig.add_trace(go.Scatter(x=x, y=y, mode='markers', marker=dict(color=y, colorscale='Bluered', size=10),
-                            name='True Labels'))
+    fig.add_trace(go.Scatter(
+        x=x, y=y, mode='markers',
+        marker=dict(color=y, colorscale='Bluered', size=10),
+        name='True Labels',
+        showlegend=False  # Legende für die Punkte ausblenden
+    ))
+
+    # Zwei Dummy-Traces für die Legende: Blau für y=0, Rot für y=1
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None], mode='markers',
+        marker=dict(color='blue', size=10),
+        name='True Label: 0'
+    ))
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None], mode='markers',
+        marker=dict(color='red', size=10),
+        name='True Label: 1'
+    ))
 
     # Vorhersagekurve
     x_range = np.linspace(0, 1, 200)
@@ -135,3 +152,38 @@ def BCE_Widget():
 
     return VBox([HBox([w_slider, b_slider]), out])
 
+def sigmoid_widget():
+    def plot_sigmoid(w=1.0, b=0.0):
+        x = np.linspace(-10, 10, 100)
+        y = 1 / (1 + np.exp(-w * (x - b)))
+        plt.figure(figsize=(8, 5))
+        plt.plot(x, y, label=f'Sigmoid (w={w:.2f}, b={b:.2f})', color='blue')
+        plt.axhline(0.5, color='red', linestyle='--', linewidth=1, label='y=0.5')
+        plt.axvline(b, color='gray', linestyle='--', linewidth=1, label=f'x={b:.2f}')
+        plt.xlim(-10, 10)
+        plt.ylim(-0.1, 1.1)
+        plt.legend()
+        plt.title("Sigmoid Funktion (interaktiv)")
+        plt.xlabel("x")
+        plt.ylabel("Sigmoid(x)")
+        plt.grid(True)
+        plt.show()
+
+    interact(plot_sigmoid,
+            w=FloatSlider(value=0.0, min=-3.0, max=3.0, step=0.1, description='Parameter w'),
+            b=FloatSlider(value=0.0, min=-5.0, max=5.0, step=0.1, description='Parameter b'))
+    
+def likelihood_widget():
+    def plot_likelihood(p=0.5):
+        x = np.linspace(0, 1, 100)
+        y = lambda x: x**13 * (1-x)**7
+        fig, ax = plt.subplots(figsize=(5,5))
+        ax.plot(x, y(x), label=f'L = {y(p):.3g}')
+        ax.axvline(p, color='red', linestyle='--', label=f'p = {p:.2f}')
+        ax.set_xlabel('p')
+        ax.set_ylabel('Likelihood')
+        ax.legend()
+        plt.show()
+
+    interact(plot_likelihood, 
+            p=FloatSlider(value=0.5, min=0, max=1, step=0.01, description='p'))
