@@ -89,3 +89,44 @@ def check_model_training(model, X_train, y_train):
         print("✅ Modell erfolgreich trainiert!")
     except Exception as e:
         print("❌ Fehler beim Modell:", str(e))
+
+
+def check_metrics(y_test, y_pred, y_prob):
+    try:
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+
+        if not set(y_pred).issubset({0, 1}):
+            print("❌ y_pred enthält keine gültigen Klassen (0/1).")
+            return
+        if not (0 <= y_prob.min() <= 1 and 0 <= y_prob.max() <= 1):
+            print("❌ y_prob scheint keine Wahrscheinlichkeiten zu enthalten.")
+            return
+
+        acc = accuracy_score(y_test, y_pred)
+        prec = precision_score(y_test, y_pred)
+        rec = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
+        auc = roc_auc_score(y_test, y_prob)
+
+        print(f"✅ Accuracy: {acc:.2f}")
+        print(f"✅ Precision: {prec:.2f}")
+        print(f"✅ Recall: {rec:.2f}")
+        print(f"✅ F1-Score: {f1:.2f}")
+        print(f"✅ ROC AUC: {auc:.2f}")
+    except Exception as e:
+        print("❌ Fehler beim Berechnen der Metriken:", str(e))
+
+
+def check_coefficients(model, X_prepared):
+    try:
+        import pandas as pd
+        if not hasattr(model, "coef_"):
+            print("❌ Modell enthält keine Koeffizienten.")
+            return
+        coefs = model.coef_[0]
+        if len(coefs) != X_prepared.shape[1]:
+            print("❌ Die Anzahl der Koeffizienten stimmt nicht mit den Features überein.")
+            return
+        print("✅ Modell-Koeffizienten korrekt extrahiert.")
+    except Exception as e:
+        print("❌ Fehler bei der Koeffizienten-Analyse:", str(e))
