@@ -1,0 +1,18 @@
+;;;;;;;;;;;;;;;;;
+;Parameter;;;;;;;;;;;;;;;;
+;Mensch;Beschichter;Prüfer RKP;;;;;;;;;;;;;;
+;Maschine (Reibkorrosionsprüfstand);Verwendeter Prüfstand (Voice Coil, Piezo);Hub;Frequenz;Kontaktnormalkraft;Temperatur Prüfstand (RT, beheizt);;;;;;;;;;;
+;Material (Proben);Probentyp (Standardgeometrie, reale Steckverbinder);Probennummerierung / Zurordnung;Grundmaterial;Material Zwischenschicht;Schichtdicke Zwischenschicht;Material Oberfläche;Schichtdicke Oberfläche;Eigene Beschichtung? / Beschichtungsparameter;Beschichtungszusätze (Nanopartikel, Legierungselemente, etc.);Beschichtungsdatum;Oberflächenhärte;Rauheit Beschichtung;Kontaktradius;Reinigung;Schmierung;Thermische Lagerung
+;Methode;Reibkorrosion;Steck- und Ziehversuch;;;;;;;;;;;;;;
+;Messung;Prüfdatum;Abbruchkriterium (Widerstand / Zyklenzahl);Bewertung des Prüfers (Testmessung / Plausibles Ergebnis? / Auswertung sinnvoll?);;;;;;;;;;;;;
+;Mitwelt;Temperatur Labor;Umgebung (Vakuum, Stickstoff, normale Atmosphäre);;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;
+;Ausgangsgrößen;Anzahl Zyklen;Elektrischer Widerstand;Reibwert / Reibkraft;;;;;;;;;;;;;
+;Projektzugehörigkeit;Forschung / Abschlussarbeit;Drittmittelprojekt (Firma / Projektname);Ablageort der Messdaten;Ablageort (Kistennummer / -beschriftung, Raumnummer) der Probe;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;
+;Probenbewertung;Analysemethode (optisch, RFA, REM+EDX) --> Vergrößerung notieren;Verschleiß, Verschleißrate;Schadensmechanismen (Oxidation, Bruch, Delamination);NanoFocus Verschleißtiefe als csv?;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;
+;"ggf. Probenname automatisiert? Laufende Nummer (Datum, lfd. Versuchsnummer, Uhrzeit, Oberfläche); Zusatzkommentar bei Abweichungen";;;;;;;;;;;;;;;;
+;"""Standardwerte"" festlegen für Hub, Frequenz, Normalkraft; diese Werte nur bei Abweichungen im Dateinamen mit angeben";;;;;;;;;;;;;;;;
+;RKP_240624_0944_;;;;;;;;;;;;;;;;
