@@ -1,16 +1,6 @@
 import pandas as pd
 from IPython.display import display
 
-def check_overview(df):
-    if not hasattr(df, "shape") or not hasattr(df, "columns"):
-        print("❌ Das scheint kein gültiger DataFrame zu sein.")
-        return
-    print("✅ Form:", df.shape)
-    print("✅ Spalten:", list(df.columns[:5]), "...")
-    print("✅ Vorschau:")
-    display(df.head())
-
-
 def check_missing_and_types(df):
     na_counts = df.isna().sum()
     if not isinstance(na_counts, pd.Series):
@@ -35,7 +25,7 @@ def check_target_column(df):
         print("✅ Zielvariable korrekt erstellt!")
 
 
-def check_preprocessing(df, X_prepared):
+def check_preprocessing(X_prepared):
     # Erwartete Spaltennamen nach One-Hot-Encoding (abhängig von Daten!)
     must_include = ["Kontaktkraft_N", "Frequenz_Hz", "Hub_mm", "Steckzyklen"]
     dummy_cols = [col for col in X_prepared.columns if "Beschichtung_" in col or "Zwischenschicht_" in col]
@@ -61,3 +51,41 @@ def check_preprocessing(df, X_prepared):
             print("✅ One-Hot-Encoding & Standardisierung korrekt!")
     except Exception as e:
         print("❌ Fehler bei der Überprüfung:", str(e))
+
+
+def check_split(X_train, X_test, y_train, y_test, y):
+    try:
+        n_total = len(y)
+        n_train_expected = int(0.8 * n_total)
+        n_test_expected = n_total - n_train_expected
+
+        # Shape checks
+        if len(X_train) != n_train_expected or len(X_test) != n_test_expected:
+            print("❌ Falsche Aufteilung der Daten.")
+            return
+
+        # Stratification check
+        from collections import Counter
+        def rel_freq(arr): return Counter(arr)  # z. B. {0: 102, 1: 23}
+        train_freq = rel_freq(y_train)
+        test_freq = rel_freq(y_test)
+        orig_freq = rel_freq(y)
+
+        if abs(train_freq[1]/len(y_train) - orig_freq[1]/len(y)) > 0.02:
+            print("❌ Verteilung der Zielvariable stimmt nicht – eventuell fehlt `stratify=y`?")
+            return
+
+        print("✅ Aufteilung erfolgreich!")
+    except Exception as e:
+        print("❌ Fehler bei der Prüfung:", str(e))
+
+
+def check_model_training(model, X_train, y_train):
+    try:
+        preds = model.predict(X_train)
+        if len(preds) != len(y_train):
+            print("❌ Modell scheint nicht korrekt trainiert.")
+            return
+        print("✅ Modell erfolgreich trainiert!")
+    except Exception as e:
+        print("❌ Fehler beim Modell:", str(e))
