@@ -1,17 +1,25 @@
 import pandas as pd
 from IPython.display import display
 
-def check_missing_and_types(df):
-    na_counts = df.isna().sum()
-    if not isinstance(na_counts, pd.Series):
-        print("❌ Keine gültige Ausgabe für fehlende Werte.")
+def check_handling_missing_values(df_after):
+    dropped_idx = 25
+    still_present = dropped_idx in set(df_after.index)
+
+    # 1. Wurde Zeile mit echtem NaN entfernt?
+    if still_present:
+        print(f"❌ Zeile {dropped_idx} mit echten fehlenden Werten wurde nicht entfernt.")
+        print("💡 Tipp: Diese Zeile enthält echte Messlücken (z. B. bei physikalischen Eigenschaften).")
+        print("    Solche Werte sollten nicht geschätzt oder ersetzt werden, da das Modell sonst verzerrt wird.")
+        print("    → Verwende `dropna()` vor der Ersetzung der -1-Werte.")
         return
-    print("✅ Die fehlenden Werte sind:")
-    display(na_counts[na_counts > 0].sort_values(ascending=False).head())
 
-    print("\n✅ Die Datentypen sind:")
-    display(df.dtypes)
+    # 2. Wurden -1 durch NaN ersetzt?
+    if (df_after == -1).sum().sum() > 0:
+        print("❌ Einige -1 sind noch im DataFrame – bitte durch NaN ersetzen.")
+        return
 
+    print("✅ Alle echten NaNs entfernt und -1 korrekt durch NaN ersetzt. \n Info: \n")
+    print(df_after.info())
 
 def check_target_column(df):
     if "target" not in df.columns:
