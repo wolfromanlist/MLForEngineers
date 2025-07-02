@@ -6,11 +6,11 @@ def check_missing_and_types(df):
     if not isinstance(na_counts, pd.Series):
         print("❌ Keine gültige Ausgabe für fehlende Werte.")
         return
-    print("✅ Fehlende Werte (Ausschnitt):")
+    print("✅ Die fehlenden Werte sind:")
     display(na_counts[na_counts > 0].sort_values(ascending=False).head())
 
-    print("\n✅ Datentypen:")
-    display(df.dtypes.head())
+    print("\n✅ Die Datentypen sind:")
+    display(df.dtypes)
 
 
 def check_target_column(df):
@@ -18,17 +18,17 @@ def check_target_column(df):
         print("❌ Fehler: Die Spalte 'target' wurde nicht erstellt.")
         return
 
-    expected = (df["Zyklus_300_mOhm"].fillna(0) > 0).astype(int)
+    expected = (df["Zyklus_300_mOhm"] > 0).astype(int)
     if not df["target"].equals(expected):
         print(f"❌ 'target' ist nicht korrekt. {sum(df['target'] != expected)} Fehlerhafte Zeilen.")
     else:
-        print("✅ Zielvariable korrekt erstellt!")
+        print("✅ Zielvariable korrekt erstellt: \n", df[['target']])
 
 
 def check_preprocessing(X_prepared):
-    # Erwartete Spaltennamen nach One-Hot-Encoding (abhängig von Daten!)
-    must_include = ["Kontaktkraft_N", "Frequenz_Hz", "Hub_mm", "Steckzyklen"]
-    dummy_cols = [col for col in X_prepared.columns if "Beschichtung_" in col or "Zwischenschicht_" in col]
+    # Erwartete Spaltennamen nach One-Hot-Encoding
+    must_include = ["Normalkraft", "Frequenz", "Bewegungshub", "Zyklus_1_mOhm", "Zyklus_2_mOhm", "Zyklus_5_mOhm", "Zyklus_10_mOhm", "Zyklus_20_mOhm", "Zyklus_50_mOhm", "Zyklus_100_mOhm", "Zyklus_300_mOhm"]
+    dummy_cols = [col for col in X_prepared.columns if "Beschichtung_Ag_Sn" in col or "Zwischenschicht_Ni" in col]
 
     missing = [col for col in must_include if col not in X_prepared.columns]
     if missing:
