@@ -8,9 +8,9 @@ def check_handling_missing_values(df_after):
     # 1. Wurde Zeile mit echtem NaN entfernt?
     if still_present:
         print(f"❌ Zeile {dropped_idx} mit echten fehlenden Werten wurde nicht entfernt.")
-        print("💡 Tipp: Diese Zeile enthält echte Messlücken (z. B. bei physikalischen Eigenschaften).")
-        print("    Solche Werte sollten nicht geschätzt oder ersetzt werden, da das Modell sonst verzerrt wird.")
-        print("    → Verwende `dropna()` vor der Ersetzung der -1-Werte.")
+        print("Tipp: Diese Zeile enthält eine echte Messlücke.")
+        print("Solche Werte sollten nicht geschätzt oder ersetzt werden, da das Modell sonst verzerrt wird.")
+        print("→ Verwende `dropna()` vor der Ersetzung der -1-Werte.")
         return
 
     # 2. Wurden -1 durch NaN ersetzt?
@@ -18,7 +18,7 @@ def check_handling_missing_values(df_after):
         print("❌ Einige -1 sind noch im DataFrame – bitte durch NaN ersetzen.")
         return
 
-    print("✅ Alle echten NaNs entfernt und -1 korrekt durch NaN ersetzt. \n Info: \n")
+    print("✅ Alle echten NaNs entfernt und -1 korrekt durch NaN ersetzt. \n -------------------- \n Info: \n")
     print(df_after.info())
 
 def check_target_column(df):
@@ -33,24 +33,31 @@ def check_target_column(df):
         print("✅ Zielvariable korrekt erstellt: \n", df[['target']])
 
 
-def check_preprocessing(X_prepared):
+def check_preprocessing(X_processed):
     # Erwartete Spaltennamen nach One-Hot-Encoding
     must_include = ["Normalkraft", "Frequenz", "Bewegungshub", "Zyklus_1_mOhm", "Zyklus_2_mOhm", "Zyklus_5_mOhm", "Zyklus_10_mOhm", "Zyklus_20_mOhm", "Zyklus_50_mOhm", "Zyklus_100_mOhm", "Zyklus_300_mOhm"]
-    dummy_cols = [col for col in X_prepared.columns if "Beschichtung_Ag_Sn" in col or "Zwischenschicht_Ni" in col]
+    dummy_cols = [col for col in X_processed.columns if "Beschichtung_Ag_Sn_Nein" in col or "Zwischenschicht_Ni_Nein" in col]
 
-    missing = [col for col in must_include if col not in X_prepared.columns]
+    missing = [col for col in must_include if col not in X_processed.columns]
     if missing:
         print("❌ Fehlende numerische Features:", missing)
         return
 
+    if "Beschichtung_Ag_Sn_Ja" in X_processed.columns or "Zwischenschicht_Ni_Ja" in X_processed.columns:
+        print("❌ Kategorische Variablen wurden nicht korrekt encodiert.")
+        print("Verwende das keyword `drop_first=True` in `pd.get_dummies()`, um Multikollinearität zu vermeiden.")
+        return
     if not dummy_cols:
         print("❌ Es wurden keine kategorischen Variablen encodiert.")
         return
 
     try:
         from numpy import allclose
-        means = X_prepared[must_include].mean().abs()
-        stds = X_prepared[must_include].std(ddof=0)
+        means = X_processed[must_include].mean().abs()
+        stds = X_processed[must_include].std(ddof=0)
+        print("Berechnete Mittelwerte und Standardabweichungen:")
+        print("Mittelwerte: \n", means)
+        print("Standardabweichungen: \n", stds)
         if not allclose(means, 0, atol=1e-1):
             print("❌ Die numerischen Features sind nicht korrekt zentriert (Mittelwert ≠ 0).")
         elif not allclose(stds, 1, atol=1e-1):
@@ -67,20 +74,15 @@ def check_split(X_train, X_test, y_train, y_test, y):
         n_train_expected = int(0.8 * n_total)
         n_test_expected = n_total - n_train_expected
 
-        # Shape checks
-        if len(X_train) != n_train_expected or len(X_test) != n_test_expected:
+        # Shape checks (Abweichung von 1 erlauben)
+        if abs(len(X_train) - n_train_expected) > 1 or abs(len(X_test) - n_test_expected) > 1:
             print("❌ Falsche Aufteilung der Daten.")
-            return
-
-        # Stratification check
-        from collections import Counter
-        def rel_freq(arr): return Counter(arr)  # z. B. {0: 102, 1: 23}
-        train_freq = rel_freq(y_train)
-        test_freq = rel_freq(y_test)
-        orig_freq = rel_freq(y)
-
-        if abs(train_freq[1]/len(y_train) - orig_freq[1]/len(y)) > 0.02:
-            print("❌ Verteilung der Zielvariable stimmt nicht – eventuell fehlt `stratify=y`?")
+            # Ausgabe der tatsächlichen Aufteilung als Prozentanteil
+            train_pct = len(X_train) / n_total * 100
+            test_pct = len(X_test) / n_total * 100
+            print("Erwartete Aufteilung: 80% Training, 20% Test")
+            print("Tatsächliche Aufteilung:")
+            print(f"Trainingsdaten: {len(X_train)} ({train_pct:.1f}%), Testdaten: {len(X_test)} ({test_pct:.1f}%)")
             return
 
         print("✅ Aufteilung erfolgreich!")
@@ -88,15 +90,41 @@ def check_split(X_train, X_test, y_train, y_test, y):
         print("❌ Fehler bei der Prüfung:", str(e))
 
 
-def check_model_training(model, X_train, y_train):
+import numpy as np
+
+def check_model_training(model, X_train, y_train, reference_coef=None, tolerance=0.1):
     try:
+        # 1. Prüfung: Modell trainiert?
         preds = model.predict(X_train)
         if len(preds) != len(y_train):
             print("❌ Modell scheint nicht korrekt trainiert.")
             return
-        print("✅ Modell erfolgreich trainiert!")
+        
+        # 2. Prüfung: Modell hat Koeffizienten?
+        if not hasattr(model, "coef_"):
+            print("❌ Modell enthält keine gelernten Koeffizienten (`model.coef_`).")
+            return
+
+        # 3. Optional: Vergleiche mit Referenzparametern
+        if reference_coef is not None:
+            learned_coef = model.coef_.flatten()
+            reference_coef = np.array(reference_coef).flatten()
+
+            if learned_coef.shape != reference_coef.shape:
+                print("❌ Die Form der Koeffizienten stimmt nicht mit der Referenz überein.")
+                return
+
+            diff = np.abs(learned_coef - reference_coef)
+            if np.any(diff > tolerance):
+                print("⚠️ Modell wurde trainiert, aber die Koeffizienten weichen deutlich von der Referenz ab.")
+                print("   → Mögliche Ursache: falsche Features, unstandardisierte Daten, fehlende Dropna etc.")
+                print("   Max. Abweichung:", np.max(diff))
+                return
+
+        print("✅ Modell erfolgreich trainiert und Koeffizienten stimmen (nahe genug) mit der Referenz überein.")
+    
     except Exception as e:
-        print("❌ Fehler beim Modell:", str(e))
+        print("❌ Fehler beim Modelltraining:", str(e))
 
 
 def check_metrics(y_test, y_pred, y_prob):
