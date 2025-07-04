@@ -1,4 +1,4 @@
-Datei,Beschichtung_Ag_Sn,Zwischenschicht_Ni,Normalkraft,Frequenz,Bewegungshub,Zyklus_1_mOhm,Zyklus_2_mOhm,Zyklus_5_mOhm,Zyklus_10_mOhm,Zyklus_20_mOhm,Zyklus_50_mOhm,Zyklus_100_mOhm,Zyklus_300_mOhm
+Datei,Beschichtung_Ag_Sn,Zwischenschicht_Ni,Normalkraft,Frequenz,Bewegungshub,Zyklus_bei_1_mOhm,Zyklus_bei_2_mOhm,Zyklus_bei_5_mOhm,Zyklus_bei_10_mOhm,Zyklus_bei_20_mOhm,Zyklus_bei_50_mOhm,Zyklus_bei_100_mOhm,Zyklus_bei_300_mOhm
 AgCu-200µm-1N-75000zyklen-V1.txt,Nein,Nein,1,1,200,0,16,15360,42482,50456,50729,50967,51637
 AgCu-200µm-2.5N-6100zyklen-V1.txt,Nein,Nein,2.5,1,200,0,0,0,0,0,0,0,0
 AgCu-200µm-2.5N-29000zyklen-V1.txt,Nein,Nein,2.5,1,200,0,6810,24394,26294,26329,26776,27980,28576
