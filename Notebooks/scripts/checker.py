@@ -32,7 +32,7 @@ def check_preprocessing_pipeline(df, X_processed, X_train, X_test, y_train, y_te
         print(f"→ {n_wrong} fehlerhafte Zeilen.")
         return
 
-    print("\n✅ Zielvariable korrekt erstellt.")
+    print("✅ Zielvariable korrekt erstellt.")
 
     # === 4. Prüfung: One-Hot-Encoding vorhanden und korrekt? ===
     dummy_cols = [col for col in X_processed.columns if "Beschichtung_Ag_Sn_Nein" in col or "Zwischenschicht_Ni_Nein" in col]
@@ -56,7 +56,7 @@ def check_preprocessing_pipeline(df, X_processed, X_train, X_test, y_train, y_te
     stds = X_processed[numerical_cols].std(ddof=0)
     print("\n Berechnete Mittelwerte und Standardabweichungen: \n")
     print("Mittelwerte: \n", means)
-    print("Standardabweichungen: \n", stds)
+    print("Standardabweichungen: \n", stds, "\n")
     if not allclose(means, 0, atol=0.1):
         print("❌ Die numerischen Features sind nicht korrekt zentriert (Mittelwert ≠ 0).")
         print(means)
