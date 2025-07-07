@@ -1,6 +1,85 @@
 import pandas as pd
 from IPython.display import display
 
+
+def check_preprocessing_pipeline(df_processed, X_processed, X_train, X_test, y_train, y_test):
+    from numpy import allclose
+
+    # === 1. Prüfung: Echte NaNs entfernt? ===
+    dropped_idx = 25
+    if dropped_idx in set(df_processed.index):
+        print("❌ Zeile mit echtem NaN wurde nicht entfernt (Index 25).")
+        print("Tipp: Diese Zeile enthält echte Messlücken und sollte mit `dropna()` entfernt werden.")
+        return
+
+    # === 2. Prüfung: -1 korrekt durch np.nan ersetzt? ===
+    if (df_processed == -1).sum().sum() > 0:
+        print("❌ Einige -1-Werte sind noch vorhanden. Diese sollten durch `np.nan` ersetzt werden.")
+        return
+
+    # === 3. Prüfung: Zielvariable 'target' korrekt erstellt? ===
+    if "target" not in df_processed.columns:
+        print("❌ Zielvariable 'target' fehlt.")
+        return
+    expected_target = (df_processed["Zyklus_bei_300_mOhm"] > 0).astype(int)
+    if not df_processed["target"].equals(expected_target):
+        print("❌ Zielvariable 'target' nicht korrekt. Es gibt Diskrepanzen in der Kodierung.")
+        n_wrong = (df_processed["target"] != expected_target).sum()
+        print(f"→ {n_wrong} fehlerhafte Zeilen.")
+        return
+
+    print("✅ Zielvariable korrekt erstellt.")
+
+    # === 4. Prüfung: One-Hot-Encoding vorhanden und korrekt? ===
+    dummy_cols = [col for col in X_processed.columns if "Beschichtung_Ag_Sn_Nein" in col or "Zwischenschicht_Ni_Nein" in col]
+    if "Beschichtung_Ag_Sn_Ja" in X_processed.columns or "Zwischenschicht_Ni_Ja" in X_processed.columns:
+        print("❌ One-Hot-Encoding nicht korrekt: Spalte mit 'Ja' gefunden.")
+        print("→ Verwende `drop_first=True`, um Multikollinearität zu vermeiden.")
+        return
+    if not dummy_cols:
+        print("❌ Kategorische Variablen wurden nicht encodiert.")
+        return
+
+    print("✅ One-Hot-Encoding korrekt angewendet.")
+
+    # === 5. Prüfung: Standardisierung der numerischen Features ===
+    numerical_cols = ["Normalkraft", "Frequenz", "Bewegungshub"]
+    if not all(col in X_processed.columns for col in numerical_cols):
+        print("❌ Einige numerische Features fehlen:", [col for col in numerical_cols if col not in X_processed.columns])
+        return
+
+    means = X_processed[numerical_cols].mean()
+    stds = X_processed[numerical_cols].std(ddof=0)
+    if not allclose(means, 0, atol=0.1):
+        print("❌ Die numerischen Features sind nicht korrekt zentriert (Mittelwert ≠ 0).")
+        print(means)
+        return
+    if not allclose(stds, 1, atol=0.1):
+        print("❌ Die numerischen Features sind nicht korrekt skaliert (Std ≠ 1).")
+        print(stds)
+        return
+
+    print("✅ Numerische Features korrekt standardisiert.")
+
+    # === 6. Prüfung: Train-Test-Split ===
+    n_total = len(X_train) + len(X_test)
+    expected_train = int(0.8 * n_total)
+    expected_test = n_total - expected_train
+    if abs(len(X_train) - expected_train) > 1 or abs(len(X_test) - expected_test) > 1:
+        print("❌ Falsche Aufteilung der Daten.")
+        print(f"Train: {len(X_train)} vs. Erwartet: {expected_train}")
+        print(f"Test:  {len(X_test)} vs. Erwartet: {expected_test}")
+        return
+
+    if len(X_train) != len(y_train) or len(X_test) != len(y_test):
+        print("❌ Features und Zielgrößen haben unterschiedliche Länge.")
+        return
+
+    print("✅ Train-Test-Split korrekt!")
+
+    print("\n🎉 Alle Preprocessing-Schritte erfolgreich durchgeführt!")
+
+
 def check_handling_missing_values(df_after):
     dropped_idx = 25
     still_present = dropped_idx in set(df_after.index)
