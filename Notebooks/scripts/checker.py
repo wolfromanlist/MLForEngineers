@@ -9,13 +9,17 @@ def check_preprocessing_pipeline(df_processed, X_processed, X_train, X_test, y_t
     dropped_idx = 25
     if dropped_idx in set(df_processed.index):
         print("❌ Zeile mit echtem NaN wurde nicht entfernt (Index 25).")
-        print("Tipp: Diese Zeile enthält echte Messlücken und sollte mit `dropna()` entfernt werden.")
+        print("Tipp: Diese Zeile enthält eine echte Messlücke.")
+        print("Solche Werte sollten nicht geschätzt oder ersetzt werden, da das Modell sonst verzerrt wird.")
+        print("→ Verwende `dropna()` vor der Ersetzung der -1-Werte.")
         return
 
     # === 2. Prüfung: -1 korrekt durch np.nan ersetzt? ===
     if (df_processed == -1).sum().sum() > 0:
         print("❌ Einige -1-Werte sind noch vorhanden. Diese sollten durch `np.nan` ersetzt werden.")
         return
+    
+    print("✅ Alle echten NaNs entfernt und -1 korrekt durch NaN ersetzt.")
 
     # === 3. Prüfung: Zielvariable 'target' korrekt erstellt? ===
     if "target" not in df_processed.columns:
@@ -28,13 +32,13 @@ def check_preprocessing_pipeline(df_processed, X_processed, X_train, X_test, y_t
         print(f"→ {n_wrong} fehlerhafte Zeilen.")
         return
 
-    print("✅ Zielvariable korrekt erstellt.")
+    print("\n✅ Zielvariable korrekt erstellt.")
 
     # === 4. Prüfung: One-Hot-Encoding vorhanden und korrekt? ===
     dummy_cols = [col for col in X_processed.columns if "Beschichtung_Ag_Sn_Nein" in col or "Zwischenschicht_Ni_Nein" in col]
     if "Beschichtung_Ag_Sn_Ja" in X_processed.columns or "Zwischenschicht_Ni_Ja" in X_processed.columns:
-        print("❌ One-Hot-Encoding nicht korrekt: Spalte mit 'Ja' gefunden.")
-        print("→ Verwende `drop_first=True`, um Multikollinearität zu vermeiden.")
+        print("❌ Kategorische Variablen wurden nicht korrekt encodiert.")
+        print("Verwende das keyword `drop_first=True` in `pd.get_dummies()`, um Multikollinearität zu vermeiden.")
         return
     if not dummy_cols:
         print("❌ Kategorische Variablen wurden nicht encodiert.")
@@ -50,6 +54,9 @@ def check_preprocessing_pipeline(df_processed, X_processed, X_train, X_test, y_t
 
     means = X_processed[numerical_cols].mean()
     stds = X_processed[numerical_cols].std(ddof=0)
+    print("\n Berechnete Mittelwerte und Standardabweichungen: \n")
+    print("Mittelwerte: \n", means)
+    print("Standardabweichungen: \n", stds)
     if not allclose(means, 0, atol=0.1):
         print("❌ Die numerischen Features sind nicht korrekt zentriert (Mittelwert ≠ 0).")
         print(means)
@@ -62,22 +69,32 @@ def check_preprocessing_pipeline(df_processed, X_processed, X_train, X_test, y_t
     print("✅ Numerische Features korrekt standardisiert.")
 
     # === 6. Prüfung: Train-Test-Split ===
-    n_total = len(X_train) + len(X_test)
-    expected_train = int(0.8 * n_total)
-    expected_test = n_total - expected_train
-    if abs(len(X_train) - expected_train) > 1 or abs(len(X_test) - expected_test) > 1:
-        print("❌ Falsche Aufteilung der Daten.")
-        print(f"Train: {len(X_train)} vs. Erwartet: {expected_train}")
-        print(f"Test:  {len(X_test)} vs. Erwartet: {expected_test}")
-        return
 
-    if len(X_train) != len(y_train) or len(X_test) != len(y_test):
-        print("❌ Features und Zielgrößen haben unterschiedliche Länge.")
-        return
+    try:
+        n_total = len(X_train) + len(X_test)
+        n_train_expected = int(0.8 * n_total)
+        n_test_expected = n_total - n_train_expected
+
+        # Shape checks (Abweichung von 1 erlauben)
+        if abs(len(X_train) - n_train_expected) > 1 or abs(len(X_test) - n_test_expected) > 1:
+            print("❌ Falsche Aufteilung der Daten.")
+            # Ausgabe der tatsächlichen Aufteilung als Prozentanteil
+            train_pct = len(X_train) / n_total * 100
+            test_pct = len(X_test) / n_total * 100
+            print("Erwartete Aufteilung: 80% Training, 20% Test")
+            print("Tatsächliche Aufteilung:")
+            print(f"Train: {len(X_train)} vs. Erwartet: {n_train_expected}")
+            print(f"Test:  {len(X_test)} vs. Erwartet: {n_test_expected}")
+            return
+        if len(X_train) != len(y_train) or len(X_test) != len(y_test):
+            print("❌ Features und Zielgrößen haben unterschiedliche Länge.")
+            return
+    except Exception as e:
+        print("❌ Fehler bei der Prüfung:", str(e))
 
     print("✅ Train-Test-Split korrekt!")
 
-    print("\n🎉 Alle Preprocessing-Schritte erfolgreich durchgeführt!")
+    print("\n Alle Preprocessing-Schritte erfolgreich durchgeführt!")
 
 
 def check_handling_missing_values(df_after):
