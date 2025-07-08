@@ -96,7 +96,11 @@ def check_preprocessing_pipeline(df, X_processed, X_train, X_test, y_train, y_te
 
     print("\n Alle Preprocessing-Schritte erfolgreich durchgeführt!")
 
-def check_model_training(model, X_train, y_train, reference_coef=None, tolerance=0.1):
+def check_model_training(model, X_train, y_train):
+    import numpy as np
+    tolerance = 0.1  # Toleranz für Koeffizientenvergleich
+    reference_coef = [-0.50031861, 0.39139248, 1.16948728, 0.12410654, 0.11652089]
+
     try:
         # 1. Prüfung: Modell trainiert?
         preds = model.predict(X_train)
@@ -125,7 +129,7 @@ def check_model_training(model, X_train, y_train, reference_coef=None, tolerance
                 print("   Max. Abweichung:", np.max(diff))
                 return
 
-        print("✅ Modell erfolgreich trainiert und Koeffizienten stimmen (nahe genug) mit der Referenz überein.")
+        print("✅ Modell erfolgreich trainiert und Koeffizienten korrekt.")
     
     except Exception as e:
         print("❌ Fehler beim Modelltraining:", str(e))
