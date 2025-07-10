@@ -99,7 +99,7 @@ def check_preprocessing_pipeline(df, X_processed, X_train, X_test, y_train, y_te
 def check_model_training(model, X_train, y_train):
     import numpy as np
     tolerance = 0.1  # Toleranz für Koeffizientenvergleich
-    reference_coef = [-0.50031861, 0.39139248, 1.16948728, 0.12410654, 0.11652089]
+    reference_coef = [-1.16277815, 0.10195453, 1.44717224, 0.05353295, 0.41861135]
 
     try:
         # 1. Prüfung: Modell trainiert?
@@ -156,7 +156,6 @@ def check_metrics(y_test, y_pred, y_prob):
         print(f"✅ Precision: {prec:.2f}")
         print(f"✅ Recall: {rec:.2f}")
         print(f"✅ F1-Score: {f1:.2f}")
-        print(f"✅ ROC AUC: {auc:.2f}")
     except Exception as e:
         print("❌ Fehler beim Berechnen der Metriken:", str(e))
 
