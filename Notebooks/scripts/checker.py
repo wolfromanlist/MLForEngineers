@@ -99,7 +99,7 @@ def check_preprocessing_pipeline(df, X_processed, X_train, X_test, y_train, y_te
 def check_model_training(model, X_train, y_train):
     import numpy as np
     tolerance = 0.1  # Toleranz für Koeffizientenvergleich
-    reference_coef = [-1.16277815, 0.10195453, 1.44717224, 0.05353295, 0.41861135]
+    reference_coef = [-1.08326678,  0.30716871,  1.44563987,  0.24088692,  0.48140354]
 
     try:
         # 1. Prüfung: Modell trainiert?
