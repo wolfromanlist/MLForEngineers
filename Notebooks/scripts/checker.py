@@ -99,7 +99,12 @@ def check_preprocessing_pipeline(df, X_processed, X_train, X_test, y_train, y_te
 def check_model_training(model, X_train, y_train):
     import numpy as np
     tolerance = 0.1  # Toleranz für Koeffizientenvergleich
-    reference_coef = [-1.08326678,  0.30716871,  1.44563987,  0.24088692,  0.48140354]
+
+    if hasattr(model, "classes_"):
+        reference_coef = [-0.99504183,  0.06628209,  1.36047806,  0.20047326,  0.90685968]
+    else:
+        reference_coef = [-9604.25652688, -7137.34760727, -5661.76455795, -5130.0393613 ,
+       -5348.93345345]
 
     try:
         # 1. Prüfung: Modell trainiert?
@@ -135,29 +140,51 @@ def check_model_training(model, X_train, y_train):
         print("❌ Fehler beim Modelltraining:", str(e))
 
 
-def check_metrics(y_test, y_pred, y_prob):
-    try:
-        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+def check_metrics(y_test, y_pred, y_prob=None):
+    import numpy as np
+    if y_prob is not None:
+        try:
+            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, log_loss
 
-        if not set(y_pred).issubset({0, 1}):
-            print("❌ y_pred enthält keine gültigen Klassen (0/1).")
-            return
-        if not (0 <= y_prob.min() <= 1 and 0 <= y_prob.max() <= 1):
-            print("❌ y_prob scheint keine Wahrscheinlichkeiten zu enthalten.")
-            return
+            if not set(y_pred).issubset({0, 1}):
+                print("❌ y_pred enthält keine gültigen Klassen (0/1).")
+                return
+            if not (0 <= y_prob.min() <= 1 and 0 <= y_prob.max() <= 1):
+                print("❌ y_prob scheint keine Wahrscheinlichkeiten zu enthalten.")
+                return
 
-        acc = accuracy_score(y_test, y_pred)
-        prec = precision_score(y_test, y_pred)
-        rec = recall_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
-        auc = roc_auc_score(y_test, y_prob)
+            acc = accuracy_score(y_test, y_pred)
+            prec = precision_score(y_test, y_pred)
+            rec = recall_score(y_test, y_pred)
+            f1 = f1_score(y_test, y_pred)
+            lgloss = log_loss(y_test, y_prob)
 
-        print(f"✅ Accuracy: {acc:.2f}")
-        print(f"✅ Precision: {prec:.2f}")
-        print(f"✅ Recall: {rec:.2f}")
-        print(f"✅ F1-Score: {f1:.2f}")
-    except Exception as e:
-        print("❌ Fehler beim Berechnen der Metriken:", str(e))
+
+            print(f"✅ Accuracy: {acc:.2f}")
+            print(f"✅ Precision: {prec:.2f}")
+            print(f"✅ Recall: {rec:.2f}")
+            print(f"✅ F1-Score: {f1:.2f}")
+            print(f"✅ Final BCE Loss: {lgloss:.4f}")
+
+        except Exception as e:
+            print("❌ Fehler beim Berechnen der Metriken:", str(e))
+    else:
+        try:
+            from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+            mae = mean_absolute_error(y_test, y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            rmse = np.sqrt(mse)
+            r2 = r2_score(y_test, y_pred)
+            
+            print(f"✅ R²: {r2:.2f}")
+            print(f"✅ MSE: {mse:.2f}")
+            print(f"✅ RMSE: {rmse:.2f}")
+            print(f"✅ MAE: {mae:.2f}")
+
+        except Exception as e:
+            print("❌ Fehler beim Berechnen der Metriken:", str(e))
+
 
 
 def check_coefficients(model, X_prepared):
